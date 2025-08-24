@@ -1,0 +1,53 @@
+.lista_rutas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.grid-item {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid #007bff;
+}
+
+.id-ruta {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+.nombre-ruta {
+    color: #333;
+    font-size: 18px;
+    margin: 5px 0;
+}
+
+.vehiculo {
+    color: #555;
+    margin: 3px 0;
+    font-size: 14px;
+}
+
+.coordenadas {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+}
+
+.coordenada-item {
+    font-size: 12px;
+    color: #888;
+    margin: 2px 0;
+    font-family: monospace;
+}
+
+.sin-rutas {
+    text-align: center;
+    color: #666;
+    font-size: 18px;
+    padding: 40px;
+    grid-column: 1 / -1;
+}

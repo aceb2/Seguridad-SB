@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'CSS/Listar_ruta.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+    <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
+    <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
+    <title>Ruta en San Bernardo</title>
+</head>
+
+<body>
+
+    <nav id="navbar" class="navbar">
+
+        <!-- Botón del menú desplegable -->
+        <div class="dropdown">
+            <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
+                <div class="dropdown-menu" id="dropdownMenu">
+
+                    <a href="{% url 'index' %}" class="dropdown-item">
+                        <i class="fa-solid fa-map"></i> Mapa
+                    </a>
+                    <a href="{% url 'agregar-ruta' %}" class="dropdown-item">
+                        <i class="fa-solid fa-list"></i> Historial de Alertas
+                    </a>
+                    <a href="{% url 'Listar-ruta' %}" class="dropdown-item">
+                        <i class="fa-solid fa-route"></i> Ver rutas
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fa-solid fa-gear"></i> Historial de mantenciones
+                    </a>
+                </div>
+            </i>
+        </div>
+
+        <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
+        <i id="boton-perfil" role="button" class="fa-solid fa-user"></i>
+    </nav>
+
+    <button id="agregar-ruta-btn" class="btn-agregar-ruta">
+        <i class="fa-solid fa-route"></i> Agregar Ruta
+    </button>
+    <h1 style="text-align: center; color: #333;">Rutas de Vehículos</h1>
+
+    <div class="lista_rutas">
+        {% if rutas %}
+        {% for ruta in rutas %}
+        <div class="grid-item">
+            <div class="ruta">
+                <h3 class="id-ruta">ID: {{ ruta.id }}</h3>
+                <h2 class="nombre-ruta">{{ ruta.nombre }}</h2>
+
+                {% if ruta.vehiculo_asignado %}
+                <p class="vehiculo">Vehículo: {{ ruta.vehiculo_asignado }}</p>
+                {% endif %}
+
+                {% if ruta.vehiculo_patente %}
+                <p class="vehiculo">Patente: {{ ruta.vehiculo_patente }}</p>
+                {% endif %}
+
+                {% if ruta.vehiculo_capacidad %}
+                <p class="vehiculo">Capacidad: {{ ruta.vehiculo_capacidad }}</p>
+                {% endif %}
+
+                {% if ruta.coordenada_inicio %}
+                <div class="coordenadas">
+                    <strong>Punto de inicio:</strong>
+                    <div class="coordenada-item">
+                        Lat: {{ ruta.coordenada_inicio.lat|floatformat:6 }},
+                        Lng: {{ ruta.coordenada_inicio.lng|floatformat:6 }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if ruta.coordenadas_termino %}
+                <div class="coordenadas">
+                    <strong>Punto de término:</strong>
+                    <div class="coordenada-item">
+                        Lat: {{ ruta.coordenadas_termino.lat|floatformat:6 }},
+                        Lng: {{ ruta.coordenadas_termino.lng|floatformat:6 }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="sin-rutas">
+            <p>No hay rutas registradas</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
+</body>
+
+</html>

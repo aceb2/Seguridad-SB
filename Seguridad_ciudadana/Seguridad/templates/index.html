@@ -1,0 +1,109 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="{% static 'CSS/Index.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
+  <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
+  <title>Ruta en San Bernardo</title>
+</head>
+
+<body>
+
+  <nav id="navbar" class="navbar">
+
+    <!-- Botón del menú desplegable -->
+    <div class="dropdown">
+      <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
+        <div class="dropdown-menu" id="dropdownMenu">
+
+          <a href="{% url 'index' %}" class="dropdown-item">
+            <i class="fa-solid fa-map"></i> Mapa
+          </a>
+          <a href="{% url 'agregar-ruta' %}" class="dropdown-item">
+            <i class="fa-solid fa-list"></i> Historial de Alertas
+          </a>
+          <a href="{% url 'Listar-ruta' %}" class="dropdown-item">
+            <i class="fa-solid fa-route"></i> Ver rutas
+          </a>
+          <a href="#" class="dropdown-item">
+            <i class="fa-solid fa-gear"></i> Historial de mantenciones
+          </a>
+
+        </div>
+      </i>
+    </div>
+
+    <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
+    <i id="boton-perfil" role="button" class="fa-solid fa-user"></i>
+  </nav>
+
+  <div class="content">
+
+    <!-- Bloque con el mapa de san bernardo -->
+    <div class="mapa">
+      <p class="titulo">Mapa de "San Bernardo"</p>
+      <div id="map" class="map"></div>
+    </div>
+
+
+    <!-- Bloque de alertas y tipos de alertas -->
+    <div class="alertas">
+      <h1 class="titulo-alerta">Alertas</h1>
+
+      <div class="tipos-alertas">
+
+        <div class="alerta-accidente">
+          <i class="fa-solid fa-truck-medical"></i>
+          <p role="button">Accidente</p>
+        </div>
+
+        <div class="alerta-persecucion">
+          <iconify-icon icon="mdi:police-badge"></iconify-icon>
+          <p role="button">Persecución</p>
+        </div>
+
+        <div class="alerta-desviacion">
+          <iconify-icon icon="mdi:arrow-decision"></iconify-icon>
+          <p role="button">Desviación</p>
+        </div>
+
+        <div class="alerta-robo">
+          <img class="img-robo" src="{% static 'Img/Alertas/ladron-alerta.png' %}">
+          <p role="button">Robo</p>
+        </div>
+
+
+        <form method="post" action="{% url 'Agregar-alerta' %}">
+          {% csrf_token %}
+          <input type="text" name="tipo" placeholder="Tipo de alerta">
+          <input type="text" name="descripcion" placeholder="Descripción">
+          <button type="submit">Agregar</button>
+        </form>
+
+      </div>
+    </div>
+
+  </div>
+
+
+
+
+  <!-- Ejecución de Scripts -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <script src="{% static 'JavaScript/Mapa.js' %}"></script>
+  <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
+</body>
+
+</html>

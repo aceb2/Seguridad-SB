@@ -1,0 +1,91 @@
+{
+    "alertas": [
+        {
+            "id": 1,
+            "tipo": "Accidente",
+            "descripcion": "Choque en Av. Central"
+        },
+        {
+            "id": 2,
+            "tipo": "Robo",
+            "descripcion": "Asalto en supermercado"
+        },
+        {
+            "id": 3,
+            "tipo": "hola",
+            "descripcion": "dadadsada"
+        },
+        {
+            "id": 4,
+            "tipo": "",
+            "descripcion": ""
+        },
+        {
+            "id": 5,
+            "tipo": "",
+            "descripcion": ""
+        },
+        {
+            "id": 6,
+            "tipo": "",
+            "descripcion": ""
+        }
+    ],
+    "reporte_Alertas": [],
+    "Rutas_Vehiculos": [
+        {
+            "id": 1,
+            "nombre": "Ruta 1",
+            "vehiculo_asignado": "7",
+            "vehiculo_patente": "4421gd",
+            "vehiculo_capacidad": "3",
+            "coordenada_inicio": 0,
+            "coordenadas_termino": 0
+        },
+        {
+            "id": 2,
+            "nombre": "Ruta 2",
+            "vehiculo_asignado": "7",
+            "vehiculo_patente": "4421gd",
+            "vehiculo_capacidad": "3",
+            "coordenada_inicio": {
+                "lat": "lat_inicio",
+                "lng": "lng_inicio"
+            },
+            "coordenadas_termino": {
+                "lat": "lat_fin",
+                "lng": "lng_fin"
+            }
+        },
+        {
+            "id": 3,
+            "nombre": "gfdgfdgfdg",
+            "vehiculo_asignado": "gfgfdfdgfd",
+            "vehiculo_patente": "43532532",
+            "vehiculo_capacidad": "3",
+            "coordenada_inicio": {
+                "lat": -33.58237664977628,
+                "lng": -70.7073211669922
+            },
+            "coordenadas_termino": {
+                "lat": -33.60275311406051,
+                "lng": -70.69959640502931
+            }
+        },
+        {
+            "id": 4,
+            "nombre": "hghfghgf",
+            "vehiculo_asignado": "ghfgfghfhg",
+            "vehiculo_patente": "4563636435",
+            "vehiculo_capacidad": "54",
+            "coordenada_inicio": {
+                "lat": -33.590027325241536,
+                "lng": -70.69684004580706
+            },
+            "coordenadas_termino": {
+                "lat": -33.610330500723556,
+                "lng": -70.70011699716488
+            }
+        }
+    ]
+}

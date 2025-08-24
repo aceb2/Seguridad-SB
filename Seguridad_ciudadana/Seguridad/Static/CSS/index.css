@@ -1,0 +1,115 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 6rem;
+  padding: 1rem;
+}
+
+.mapa {
+  display: grid;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  background-color: #0077C8;
+  border-radius: 3rem;
+  padding: 2rem;
+}
+
+.titulo {
+  font-size: 3.5rem;
+  text-align: center;
+  color: #252525;
+  text-decoration: solid;
+  font-weight: 900;
+  margin-left: 0;
+  text-shadow: 2px 2px 2px rgba(46, 44, 44, 0.5);
+  margin-bottom: 1rem;
+  background-color: #fff;
+  border-radius: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.map {
+  margin-top: .5rem;
+  align-items: center;
+  width: auto;
+  height: 500px;
+  border: 3px solid #252525;
+  border-bottom-right-radius: 2rem;
+  border-bottom-left-radius: 2rem;
+  border-top-left-radius: 1.5rem;
+}
+
+/* Panel de alertas */
+.alertas {
+  border: 3px solid blue;
+  background-color: #fff;
+  padding: 1rem;
+  text-align: center;
+  padding-bottom: 3rem;
+  height: fit-content;
+}
+
+.tipos-alertas {
+  justify-items: center;
+  text-align: center;
+  justify-content: center;
+}
+
+.alerta-robo,
+.alerta-accidente,
+.alerta-persecucion,
+.alerta-desviacion {
+  display: flex;
+  margin-top: 3rem;
+  padding: 0;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  border: 2px solid red;
+  width: 10rem;
+  height: 3rem;
+  font-weight: 500;
+  background-color: #009FE3;
+  border-radius: 1rem;
+
+  &:hover {
+    background-color: #0077C8;
+    color: #FFF;
+    border: 0.2rem solid #ffffff;
+  }
+
+  &:active {
+    background-color: #0077C8;
+    color: #FFF;
+    border: 0.2rem solid #ffffff;
+  }
+}
+
+p {
+  margin-left: 1rem;
+}
+
+iconify-icon {
+  border: 2px solid red;
+  width: 2rem;
+  height: 2rem;
+}
+
+.img-robo {
+  width: 2rem;
+  height: 2rem;
+}
