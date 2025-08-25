@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'CSS/Agregar_Ruta.css' %}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -15,107 +16,6 @@
     <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
     <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
     <title>Ruta en San Bernardo</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        body {
-            background: #f4f4f4;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .content {
-            display: flex;
-            flex-wrap: wrap;
-            padding: 20px;
-        }
-
-        .form-section {
-            flex: 1;
-            min-width: 300px;
-            padding: 20px;
-        }
-
-        .map-section {
-            flex: 1;
-            min-width: 300px;
-            padding: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input,
-        select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .btn {
-            background: #007bff;
-            color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .btn:hover {
-            background: #0056b3;
-        }
-
-        #map {
-            height: 400px;
-            width: 100%;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
-
-        .coordenadas-info {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-
-        .marker-info {
-            background: #ffc107;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-    </style>
 </head>
 
 <body>
@@ -192,10 +92,15 @@
                     <input type="hidden" id="lat_fin" name="lat_fin">
                     <input type="hidden" id="lng_fin" name="lng_fin">
 
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button type="submit" class="btn">💾 Guardar Ruta</button>
-                    <a href="{% url 'Listar-ruta' %}" class="btn" style="background: #6c757d;">← Volver a Rutas</a>
+                    <a href="{% url 'Listar-ruta' %}" class="btn" style="text-decoration: none; color: white;">📋 Ver Rutas</a>
+                    </div>
+
                 </form>
             </div>
+
+
 
             <div class="map-section">
                 <div id="map"></div>

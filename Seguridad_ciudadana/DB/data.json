@@ -111,6 +111,21 @@
                 "lat": -33.59009882368167,
                 "lng": -70.67593290449683
             }
+        },
+        {
+            "id": 6,
+            "nombre": "Casa Seba a Jose",
+            "vehiculo_asignado": "Toyota Corola",
+            "vehiculo_patente": "99-JK-LM",
+            "vehiculo_capacidad": "2",
+            "coordenada_inicio": {
+                "lat": -33.59009882368167,
+                "lng": -70.67560241791723
+            },
+            "coordenadas_termino": {
+                "lat": -33.57991863693235,
+                "lng": -70.680118120498
+            }
         }
     ]
 }

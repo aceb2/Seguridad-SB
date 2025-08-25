@@ -47,12 +47,18 @@
         <i id="boton-perfil" role="button" class="fa-solid fa-user"></i>
     </nav>
 
-    <button id="agregar-ruta-btn" class="btn-agregar-ruta" >
-          <i class="fa-solid fa-route"></i> Agregar Ruta  
+    <a href="{% url 'agregar-ruta' %}">
+    <button id="agregar-ruta-btn" class="btn-agregar-ruta">
+        <i class="fa-solid fa-route"></i> Agregar Ruta
+    </button>
+    </a>
+
+    <button id="eliminar-ruta-btn" class="btn-agregar-ruta">
+          <i class="fa-solid fa-route"></i> Eliminar Ruta
     </button>
 
-        <button id="eliminar-ruta-btn" class="btn-agregar-ruta" >
-          <i class="fa-solid fa-route"></i> Eliminar Ruta
+    <button id="eliminar-ruta-btn" class="btn-agregar-ruta" >
+          <i class="fa-solid fa-route"></i> Modificar Ruta
     </button>
 
 
