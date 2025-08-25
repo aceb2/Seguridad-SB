@@ -1,10 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'CSS/Index.css' %}">
+    <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+    <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
+    <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
     <title>Registro de Seccion</title>
 </head>
+
 <body>
 
   <nav id="navbar" class="navbar">
@@ -13,7 +24,6 @@
     <div class="dropdown">
       <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
         <div class="dropdown-menu" id="dropdownMenu">
-
           <a href="{% url 'index' %}" class="dropdown-item">
             <i class="fa-solid fa-map"></i> Mapa
           </a>
@@ -26,7 +36,6 @@
           <a href="#" class="dropdown-item">
             <i class="fa-solid fa-gear"></i> Historial de mantenciones
           </a>
-
         </div>
       </i>
     </div>
