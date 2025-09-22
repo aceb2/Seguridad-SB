@@ -1,10 +1,10 @@
 document.addEventListener("DOMContentLoaded", function () {
     // Inicializar mapa centrado en San Bernardo
-    var map = L.map('map').setView([-33.593, -70.698], 11);
+    var map = L.map('map').setView([-33.593, -70.698], 16);
 
     // Cargar tiles de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
+        maxZoom: 19, minZoom: 11,
     }).addTo(map);
 
     // Función para cargar y mostrar rutas

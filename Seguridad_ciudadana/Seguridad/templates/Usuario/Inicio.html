@@ -1,11 +1,13 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="stylesheet" href="{% static 'CSS/Index.css' %}">
   <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/Usuario/Inicio_sesion.css' %}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -13,7 +15,7 @@
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
   <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
   <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
-    <title>Inicio de Seccion</title>
+  <title>Inicio de Seccion</title>
 </head>
 
 <body>
@@ -43,59 +45,52 @@
     </div>
 
     <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
-    <i id="boton-perfil" role="button" class="fa-solid fa-user"></i>
-  </nav>
-  
 
-  <div class="content">
+    <!-- Botón del menú Usuario -->
+    <div class="dropdown2">
+      <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
+        <div class="dropdown-menu2" id="dropdownUsuario">
 
-    <!-- Bloque con el mapa de san bernardo -->
-    <div class="mapa">
-      <p class="titulo">Mapa de "San Bernardo"</p>
-      <div id="map" class="map"></div>
+          <a href="{% url 'Inicio' %}" class="dropdown-item2">
+            <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+          </a>
+          <a href="{% url 'agregar-ruta' %}" class="dropdown-item2">
+            <i class="fa-solid fa-list"></i> Historial de Alertas
+          </a>
+
+        </div>
+      </i>
     </div>
 
+  </nav>
 
-    <!-- Bloque de alertas y tipos de alertas -->
-    <div class="alertas">
-      <h1 class="titulo-alerta">Alertas</h1>
 
-      <div class="tipos-alertas">
-
-        <div class="alerta-accidente">
-          <i class="fa-solid fa-truck-medical"></i>
-          <p role="button">Accidente</p>
+  <!-- Bloque con el formulario de inicio de sesion -->
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🔐 Iniciar Sesión</h1>
+            <p>Accede a tu cuenta</p>
         </div>
 
-        <div class="alerta-persecucion">
-          <iconify-icon icon="mdi:police-badge"></iconify-icon>
-          <p role="button">Persecución</p>
-        </div>
+        <form id="login-form" method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>📧 Correo Electrónico</label>
+                <input type="email" name="email" required>
+            </div>
 
-        <div class="alerta-desviacion">
-          <iconify-icon icon="mdi:arrow-decision"></iconify-icon>
-          <p role="button">Desviación</p>
-        </div>
+            <div class="form-group">
+                <label>🔒 Contraseña</label>
+                <input type="password" name="password" required>
+            </div>
 
-        <div class="alerta-robo">
-          <img class="img-robo" src="{% static 'Img/Alertas/ladron-alerta.png' %}">
-          <p role="button">Robo</p>
-        </div>
-
-
-        <form method="post" action="{% url 'Agregar-alerta' %}">
-          {% csrf_token %}
-          <input type="text" name="tipo" placeholder="Tipo de alerta">
-          <input type="text" name="descripcion" placeholder="Descripción">
-          <button type="submit">Agregar</button>
+            <button type="submit">🚀 Iniciar Sesión</button>
         </form>
 
-      </div>
+        <div class="login-footer">
+            <p>¿No tienes cuenta? <a href="{% url 'Registro' %}">Regístrate aquí</a></p>
+        </div>
     </div>
-
-  </div>
-
-
 
 
   <!-- Ejecución de Scripts -->
@@ -103,6 +98,7 @@
   <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
   <script src="{% static 'JavaScript/Mapa.js' %}"></script>
   <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
+  <script src="{% static 'JavaScript/auth.js' %}"></script>
 </body>
 
 </html>

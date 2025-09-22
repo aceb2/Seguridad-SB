@@ -22,30 +22,52 @@
 
     <nav id="navbar" class="navbar">
 
-    <!-- Botón del menú desplegable -->
-    <div class="dropdown">
-      <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
-        <div class="dropdown-menu" id="dropdownMenu">
+        <!-- Botón del menú desplegable -->
+        <div class="dropdown">
+            <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
+                <div class="dropdown-menu" id="dropdownMenu">
 
-          <a href="{% url 'index' %}" class="dropdown-item">
-            <i class="fa-solid fa-map"></i> Mapa
-          </a>
-          <a href="{% url 'agregar-ruta' %}" class="dropdown-item">
-            <i class="fa-solid fa-list"></i> Historial de Alertas
-          </a>
-          <a href="{% url 'Listar-ruta' %}" class="dropdown-item">
-            <i class="fa-solid fa-route"></i> Ver rutas
-          </a>
-          <a href="#" class="dropdown-item">
-            <i class="fa-solid fa-gear"></i> Historial de mantenciones
-          </a>
+                    <a href="{% url 'index' %}" class="dropdown-item">
+                        <i class="fa-solid fa-map"></i> Mapa
+                    </a>
+                    <a href="{% url 'agregar-ruta' %}" class="dropdown-item">
+                        <i class="fa-solid fa-list"></i> Historial de Alertas
+                    </a>
+                    <a href="{% url 'Listar-ruta' %}" class="dropdown-item">
+                        <i class="fa-solid fa-route"></i> Ver rutas
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fa-solid fa-gear"></i> Historial de mantenciones
+                    </a>
 
+                </div>
+            </i>
         </div>
-      </i>
-    </div>
 
         <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
-        <i id="boton-perfil" role="button" class="fa-solid fa-user"></i>
+
+
+        <!-- Botón del menú desplegable -->
+        <div class="dropdown2">
+            <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown2()">
+                <div class="dropdown-menu" id="dropdownUsuario">
+
+                    <a href="{% url 'index' %}" class="dropdown-item">
+                        <i class="fa-solid fa-map"></i> Mapa
+                    </a>
+                    <a href="{% url 'agregar-ruta' %}" class="dropdown-item">
+                        <i class="fa-solid fa-list"></i> Historial de Alertas
+                    </a>
+                    <a href="{% url 'Listar-ruta' %}" class="dropdown-item">
+                        <i class="fa-solid fa-route"></i> Ver rutas
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fa-solid fa-gear"></i> Historial de mantenciones
+                    </a>
+
+                </div>
+            </i>
+        </div>
     </nav>
 
 
@@ -93,8 +115,9 @@
                     <input type="hidden" id="lng_fin" name="lng_fin">
 
                     <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button type="submit" class="btn">💾 Guardar Ruta</button>
-                    <a href="{% url 'Listar-ruta' %}" class="btn" style="text-decoration: none; color: white;">📋 Ver Rutas</a>
+                        <button type="submit" class="btn">💾 Guardar Ruta</button>
+                        <a href="{% url 'Listar-ruta' %}" class="btn" style="text-decoration: none; color: white;">📋
+                            Ver Rutas</a>
                     </div>
 
                 </form>

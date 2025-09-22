@@ -44,6 +44,7 @@ body {
     background: #f8f9fa;
     border-radius: 8px;
     margin: 5px;
+    transition: all 0.3s ease;
 }
 
 .dropdown-toggle:hover {
@@ -120,7 +121,7 @@ body {
     text-decoration: none;
 }
 
-#boton-perfil {
+#boton-usuario {
     cursor: pointer;
     padding: 12px;
     font-size: 24px;
@@ -131,7 +132,7 @@ body {
     margin: 5px;
 }
 
-#boton-perfil:hover {
+#boton-usuario:hover {
     background: #e9ecef;
     color: #007bff;
     transform: scale(1.05);
@@ -156,7 +157,7 @@ body {
     }
 }
 
-#boton-perfil {
+#boton-usuario {
     margin-right: 3rem;
     font-size: 1.5rem;
     border: 0.1rem solid #ffffff;
@@ -173,4 +174,97 @@ body {
         color: #FFF;
         border: 0.1rem solid #ffffff;
     }
+}
+
+/* Dropdown DERECHO (nuevo) */
+.dropdown2 {
+    position: relative;
+    display: inline-block;
+    z-index: 10001;
+}
+
+.dropdown2 .dropdown-menu2 {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: auto;
+}
+
+.dropdown2 .dropdown-item2:hover {
+    transform: translateX(-5px);
+    border-right-color: #007bff;
+}
+
+.dropdown-toggle2 {
+    cursor: pointer;
+    padding: 12px;
+    font-size: 24px;
+    color: #2c3e50;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 5px;
+    transition: all 0.3s ease;
+}
+
+.dropdown-toggle2:hover {
+    background: #e9ecef;
+    color: #007bff;
+    transform: scale(1.05);
+}
+
+.dropdown-menu2 {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    padding: 10px 0;
+    min-width: 250px;
+    z-index: 10002;
+    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.dropdown-menu2.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.dropdown-item2 {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: #2c3e50;
+    transition: all 0.2s ease;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.dropdown-item2:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.dropdown-item2:active {
+    transform: scale(0.98);
+}
+
+.dropdown-item2 i {
+    margin-right: 12px;
+    width: 20px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, #dee2e6, transparent);
+    margin: 8px 15px;
 }

@@ -46,19 +46,21 @@
 
     <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
 
+    <!-- Botón del menú Usuario -->
+    <div class="dropdown2">
+      <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
+        <div class="dropdown-menu2" id="dropdownUsuario">
 
-  <!-- Botón del menú Inicio - Registro -->
-  <div class="dropdown">
-    <i id="Login" role="button" class="fa-solid fa-user dropdown-toggle" onclick="toggleDropdown('menuLogin')"></i>
-    <div class="dropdown-menu" id="menuLogin">
-      <a href="#" class="dropdown-item">
-        <i class="fa-solid fa-right-to-bracket"></i> Inicio de Sesión
-      </a>
-      <a href="#" class="dropdown-item">
-        <i class="fa-solid fa-user-plus"></i> Registrarse
-      </a>
+          <a href="{% url 'Inicio' %}" class="dropdown-item2">
+            <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+          </a>
+          <a href="{% url 'agregar-ruta' %}" class="dropdown-item2">
+            <i class="fa-solid fa-list"></i> Historial de Alertas
+          </a>
+
+        </div>
+      </i>
     </div>
-  </div>
 
   </nav>
 
@@ -66,10 +68,8 @@
 
     <!-- Bloque con el mapa de san bernardo -->
     <div class="mapa">
-      <p class="titulo">Mapa de "San Bernardo"</p>
       <div id="map" class="map"></div>
     </div>
-
 
     <!-- Bloque de alertas y tipos de alertas -->
     <div class="alertas">
@@ -110,11 +110,11 @@
 
 
 
-  <!-- Ejecución de Scripts -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
-  <script src="{% static 'JavaScript/Mapa.js' %}"></script>
-  <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
+    <!-- Ejecución de Scripts -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="{% static 'JavaScript/Mapa.js' %}"></script>
+    <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
 </body>
 
 </html>

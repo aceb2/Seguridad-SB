@@ -1,12 +1,14 @@
 import json
 import os
-from django.shortcuts import render, redirect
-from django.conf import settings
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime
+import uuid
+from django.shortcuts import render, redirect # type: ignore
+from django.conf import settings # type: ignore
+from django.http import HttpResponse, JsonResponse # type: ignore
+from django.views.decorators.csrf import csrf_exempt # type: ignore
+from django.contrib.auth.hashers import make_password, check_password # type: ignore
 
 """ Ruta del archivo json que esta funcionando como base de datos """
-from django.conf import settings
 JSON_PATH = os.path.join(settings.BASE_DIR, 'DB/data.json')
 
 # Función para cargar datos
@@ -134,3 +136,208 @@ def listar_rutas(request):
         return render(request, 'CRUD/Rutas/Listar_ruta.html', context)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+#Vistas Usuarios
+
+# Funciones para usuarios
+def cargar_usuarios():
+    return cargar_json(USERS_FILE_PATH, {"usuarios": []})
+
+def guardar_usuarios(data):
+    guardar_json(USERS_FILE_PATH, data)
+
+# Funciones para sesiones
+def cargar_sesiones():
+    return cargar_json(SESSION_FILE_PATH, {"sesiones": []})
+
+def guardar_sesiones(data):
+    guardar_json(SESSION_FILE_PATH, data)
+
+def crear_sesion(request, email, nombre, apellido):
+    sesiones = cargar_sesiones()
+    
+    # Eliminar sesiones expiradas
+    ahora = datetime.now().isoformat()
+    sesiones["sesiones"] = [s for s in sesiones["sesiones"] 
+                           if datetime.fromisoformat(s["expira"]) > datetime.fromisoformat(ahora)]
+    
+    # Crear nueva sesión
+    session_id = str(uuid.uuid4())
+    nueva_sesion = {
+        "session_id": session_id,
+        "email": email,
+        "nombre": nombre,
+        "apellido": apellido,
+        "creada": ahora,
+        "expira": (datetime.now() + timedelta(hours=24)).isoformat()
+    }
+    
+    sesiones["sesiones"].append(nueva_sesion)
+    guardar_sesiones(sesiones)
+    
+    # Guardar en cookie
+    response = HttpResponse()
+    response.set_cookie(
+        'session_id', 
+        session_id, 
+        max_age=24*60*60,
+        httponly=True
+    )
+    return response
+
+def verificar_sesion(request):
+    session_id = request.COOKIES.get('session_id')
+    if not session_id:
+        return None
+    
+    sesiones = cargar_sesiones()
+    ahora = datetime.now().isoformat()
+    
+    # Buscar sesión válida
+    sesion_valida = next((s for s in sesiones["sesiones"] 
+                         if s["session_id"] == session_id and 
+                         datetime.fromisoformat(s["expira"]) > datetime.fromisoformat(ahora)), None)
+    
+    return sesion_valida
+
+def eliminar_sesion(request):
+    session_id = request.COOKIES.get('session_id')
+    if session_id:
+        sesiones = cargar_sesiones()
+        sesiones["sesiones"] = [s for s in sesiones["sesiones"] if s["session_id"] != session_id]
+        guardar_sesiones(sesiones)
+    
+    response = HttpResponse()
+    response.delete_cookie('session_id')
+    return response
+
+# Middleware personalizado para verificar sesión
+def usuario_autenticado(request):
+    return verificar_sesion(request) is not None
+
+# Vistas de autenticación
+def iniciar_sesion(request):
+    if usuario_autenticado(request):
+        return redirect('index')
+    
+    if request.method == 'POST':
+        try:
+            data = cargar_usuarios()
+            usuarios = data["usuarios"]
+            
+            email = request.POST.get("email")
+            password = request.POST.get("password")
+            
+            usuario = next((user for user in usuarios if user['email'] == email), None)
+            
+            if usuario and check_password(password, usuario['password']):
+                response = crear_sesion(request, email, usuario['nombre'], usuario['apellido'])
+                response['Content-Type'] = 'application/json'
+                response.content = json.dumps({
+                    "status": "success", 
+                    "message": "Login exitoso",
+                    "redirect": "/"
+                })
+                return response
+            else:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Credenciales incorrectas"
+                })
+                
+        except Exception as e:
+            return JsonResponse({
+                "status": "error", 
+                "message": f"Error: {str(e)}"
+            })
+    
+    return render(request, 'Usuario/Inicio.html')
+
+def registrar(request):
+    if usuario_autenticado(request):
+        return redirect('index')
+    
+    if request.method == 'POST':
+        try:
+            data = cargar_usuarios()
+            usuarios = data["usuarios"]
+            
+            email = request.POST.get("email")
+            nombre = request.POST.get("nombre")
+            apellido = request.POST.get("apellido")
+            password = request.POST.get("password")
+            confirm_password = request.POST.get("confirm_password")
+            
+            # Validaciones
+            if not all([email, nombre, apellido, password, confirm_password]):
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Todos los campos son requeridos"
+                })
+            
+            if password != confirm_password:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Las contraseñas no coinciden"
+                })
+            
+            if len(password) < 6:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "La contraseña debe tener al menos 6 caracteres"
+                })
+            
+            # Verificar si el usuario ya existe
+            if any(user['email'] == email for user in usuarios):
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "El usuario ya existe"
+                })
+            
+            nuevo_usuario = {
+                "email": email,
+                "nombre": nombre,
+                "apellido": apellido,
+                "password": make_password(password),
+                "fecha_registro": datetime.now().isoformat()
+            }
+            
+            usuarios.append(nuevo_usuario)
+            guardar_usuarios(data)
+            
+            # Auto-login después del registro
+            response = crear_sesion(request, email, nombre, apellido)
+            response['Content-Type'] = 'application/json'
+            response.content = json.dumps({
+                "status": "success", 
+                "message": "Usuario registrado correctamente",
+                "redirect": "/"
+            })
+            return response
+            
+        except Exception as e:
+            return JsonResponse({
+                "status": "error", 
+                "message": f"Error: {str(e)}"
+            })
+    
+    return render(request, 'Usuario/Registro.html')
+
+def cerrar_sesion(request):
+    response = eliminar_sesion(request)
+    response['Content-Type'] = 'application/json'
+    response.content = json.dumps({
+        "status": "success", 
+        "message": "Sesión cerrada",
+        "redirect": "/Login/"
+    })
+    return response
+
+# Decorador para proteger vistas
+def requerir_autenticacion(view_func):
+    def wrapper(request, *args, **kwargs):
+        if not usuario_autenticado(request):
+            return redirect('Inicio')
+        return view_func(request, *args, **kwargs)
+    return wrapper

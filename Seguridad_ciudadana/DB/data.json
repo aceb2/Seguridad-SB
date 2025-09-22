@@ -39,6 +39,11 @@
             "id": 8,
             "tipo": "",
             "descripcion": ""
+        },
+        {
+            "id": 9,
+            "tipo": "",
+            "descripcion": ""
         }
     ],
     "reporte_Alertas": [],
@@ -127,5 +132,6 @@
                 "lng": -70.680118120498
             }
         }
-    ]
+    ],
+    "Usuarios": []
 }
