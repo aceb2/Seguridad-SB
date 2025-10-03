@@ -9,6 +9,8 @@ JSON_FILE_PATH = os.path.join(BASE_DIR, 'DB', 'data.json')
 
 SECRET_KEY = 'django-insecure-f(tp3foo&9y!)2n_a9vz+%als((omf9rulg%6j8ek1f4se@h3f'
 
+AUTH_USER_MODEL = 'Seguridad.Usuario' 
+
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]  # en desarrollo acepta todo
@@ -65,10 +67,10 @@ WSGI_APPLICATION = 'Seguridad_ciudadana.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Seguridad_SB',       # <-- tu base de datos
-        'USER': 'postgres',     # <-- tu usuario
-        'PASSWORD': 'Seba1234',   # <-- tu contraseña
-        'HOST': 'localhost',
+        'NAME': 'Seguridad_SB',
+        'USER': 'postgres',
+        'PASSWORD': '123456',  # La que creaste en Supabase
+        'HOST': 'localhost',  # Host de Supabase
         'PORT': '5432',
     }
 }
@@ -89,7 +91,7 @@ USE_TZ = True
 
 # ---------------- STATIC ----------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "Static")]
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -8,12 +8,11 @@
 }
 
 body {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    min-height: 100vh;
+    background-color: rgb(229, 242, 236);
 }
 
 .login-container {
@@ -23,7 +22,8 @@ body {
     padding: 40px;
     width: 100%;
     max-width: 450px;
-    margin: 20px;
+    margin: auto;
+
 }
 
 .login-header {
@@ -194,15 +194,15 @@ body {
         padding: 30px 25px;
         margin: 15px;
     }
-    
+
     .login-header h1 {
         font-size: 28px;
     }
-    
+
     .login-header p {
         font-size: 15px;
     }
-    
+
     .form-group input {
         padding: 14px;
     }
@@ -213,15 +213,15 @@ body {
         padding: 25px 20px;
         margin: 10px;
     }
-    
+
     .login-header h1 {
         font-size: 24px;
     }
-    
+
     .login-icon {
         font-size: 40px;
     }
-    
+
     .login-btn {
         padding: 14px;
         font-size: 16px;
@@ -234,6 +234,7 @@ body {
         opacity: 0;
         transform: translateY(30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -273,4 +274,26 @@ body {
     to {
         transform: translate(-50%, -50%) rotate(360deg);
     }
+}
+
+/* Estilos para el botón de loading */
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Mejoras visuales para el formulario */
+.login-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.form-group input:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
 }

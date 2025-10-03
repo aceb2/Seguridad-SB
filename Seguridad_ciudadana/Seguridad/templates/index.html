@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
@@ -30,14 +31,11 @@
           <a href="{% url 'index' %}" class="dropdown-item">
             <i class="fa-solid fa-map"></i> Mapa
           </a>
-          <a href="{% url 'agregar-ruta' %}" class="dropdown-item">
+          <a href="" class="dropdown-item">
             <i class="fa-solid fa-list"></i> Historial de Alertas
           </a>
-          <a href="{% url 'Listar-ruta' %}" class="dropdown-item">
-            <i class="fa-solid fa-route"></i> Ver rutas
-          </a>
-          <a href="#" class="dropdown-item">
-            <i class="fa-solid fa-gear"></i> Historial de mantenciones
+          <a href="" class="dropdown-item">
+            <i class="fa-solid fa-chart-pie"></i> Graficos
           </a>
 
         </div>
@@ -51,10 +49,10 @@
       <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
         <div class="dropdown-menu2" id="dropdownUsuario">
 
-          <a href="{% url 'Inicio' %}" class="dropdown-item2">
+          <a href="{% url 'login' %}" class="dropdown-item2">
             <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
           </a>
-          <a href="{% url 'agregar-ruta' %}" class="dropdown-item2">
+          <a href="" class="dropdown-item2">
             <i class="fa-solid fa-list"></i> Historial de Alertas
           </a>
 
@@ -96,17 +94,33 @@
           <img class="img-robo" src="{% static 'Img/Alertas/ladron-alerta.png' %}">
           <p role="button">Robo</p>
         </div>
-
-
-        <form method="post" action="{% url 'Agregar-alerta' %}">
-          {% csrf_token %}
-          <input type="text" name="tipo" placeholder="Tipo de alerta">
-          <input type="text" name="descripcion" placeholder="Descripción">
-          <button type="submit">Agregar</button>
-        </form>
       </div>
     </div>
 
+
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // ✅ MOSTRAR BIENVENIDA EN INDEX (no en login)
+        {% if mostrar_bienvenida and usuario_nombre %}
+        Swal.fire({
+          icon: 'success',
+          title: `¡Bienvenido/a {{ usuario_rol }}! 🎉`,
+          text: '{{ usuario_nombre|escapejs }}',
+          confirmButtonText: 'Comenzar',
+          confirmButtonColor: '#28a745',
+          background: '#1e1e1e',
+          color: 'white',
+          timer: 4000,
+          timerProgressBar: true,
+          didOpen: () => {
+            // Opcional: reproducir sonido de bienvenida
+            // const audio = new Audio('/static/sounds/welcome.mp3');
+            // audio.play();
+          }
+        });
+        {% endif %}
+      });
+    </script>
 
 
 
