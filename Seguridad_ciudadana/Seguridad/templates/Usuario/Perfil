@@ -65,7 +65,7 @@
   <!-- Script para SweetAlert -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      
+      // ✅ SOLO MOSTRAR ERRORES EN LOGIN, NO BIENVENIDAS
       {% if alert_type %}
       const alertType = '{{ alert_type|escapejs }}';
       const alertTitle = '{{ alert_title|escapejs }}';
@@ -83,13 +83,14 @@
         timerProgressBar: true
       });
       {% endif %}
-      
+
+      // Validación del formulario
       if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
           const email = document.getElementById('email-input').value;
           const password = document.getElementById('password-input').value;
 
-          
+          // Validación básica
           if (!email || !password) {
             e.preventDefault();
             Swal.fire({
@@ -104,7 +105,7 @@
             return;
           }
 
-          
+          // Mostrar loading
           submitBtn.innerHTML = '⏳ Validando credenciales...';
           submitBtn.disabled = true;
         });

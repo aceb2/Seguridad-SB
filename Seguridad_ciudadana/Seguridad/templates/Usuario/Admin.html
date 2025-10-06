@@ -1,0 +1,83 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="{% static 'CSS/Index.css' %}">
+    <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'CSS/Usuario/Admin.css' %}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+    <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
+    <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
+    <title>Ruta en San Bernardo</title>
+</head>
+
+<body>
+
+    <nav id="navbar" class="navbar">
+
+        <!-- Botón del menú desplegable -->
+        <div class="dropdown">
+            <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
+                <div class="dropdown-menu" id="dropdownMenu">
+
+                    <a href="{% url 'index' %}" class="dropdown-item">
+                        <i class="fa-solid fa-map"></i> Mapa
+                    </a>
+                    <a href="" class="dropdown-item">
+                        <i class="fa-solid fa-list"></i> Historial de Alertas
+                    </a>
+                    <a href="" class="dropdown-item">
+                        <i class="fa-solid fa-chart-pie"></i> Graficos
+                    </a>
+
+                </div>
+            </i>
+        </div>
+
+        <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
+
+        <!-- Botón del menú Usuario -->
+        <div class="dropdown2">
+            <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
+                <div class="dropdown-menu2" id="dropdownUsuario">
+
+                    <!-- ✅ Mostrar información del usuario si está logueado -->
+                    {% if user.is_authenticated %}
+                    <div class="user-info">
+                        <strong>{{ user.nombre_usuario }} {{ user.apellido_pat_usuario }}</strong>
+                        <small>{{ user.id_rol.nombre_rol }}</small>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    {% endif %}
+
+                    <!-- ✅ Enlace de Cerrar Sesión -->
+                    <a href="{% url 'logout' %}" class="dropdown-item2 logout-btn">
+                        <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                    </a>
+
+                    <!-- Mantener otros enlaces si los necesitas -->
+                    <a href="{% url 'Admin' %}" class="dropdown-item2">
+                        <i class="fa-solid fa-list"></i> Historial de Alertas
+                    </a>
+
+                </div>
+            </i>
+        </div>
+
+    </nav>
+    <a href="{% url 'admin_requerimientos' %}" class="dropdown-item">
+        <i class="fa-solid fa-list-check"></i> Requerimientos
+    </a>
+
+</body>
+
+</html>

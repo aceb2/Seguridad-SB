@@ -49,10 +49,22 @@
       <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
         <div class="dropdown-menu2" id="dropdownUsuario">
 
-          <a href="{% url 'login' %}" class="dropdown-item2">
-            <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+          <!-- ✅ Mostrar información del usuario si está logueado -->
+          {% if user.is_authenticated %}
+          <div class="user-info">
+            <strong>{{ user.nombre_usuario }} {{ user.apellido_pat_usuario }}</strong>
+            <small>{{ user.id_rol.nombre_rol }}</small>
+          </div>
+          <div class="dropdown-divider"></div>
+          {% endif %}
+
+          <!-- ✅ Enlace de Cerrar Sesión -->
+          <a href="{% url 'logout' %}" class="dropdown-item2 logout-btn">
+            <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
           </a>
-          <a href="" class="dropdown-item2">
+
+          <!-- Mantener otros enlaces si los necesitas -->
+          <a href="{% url 'Admin' %}" class="dropdown-item2">
             <i class="fa-solid fa-list"></i> Historial de Alertas
           </a>
 

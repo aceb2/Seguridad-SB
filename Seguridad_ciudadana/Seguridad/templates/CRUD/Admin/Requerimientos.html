@@ -1,0 +1,191 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/Usuario/Admin.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
+  <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
+  <title>Ruta en San Bernardo</title>
+</head>
+
+<body>
+
+  <nav id="navbar" class="navbar">
+
+    <!-- Botón del menú desplegable -->
+    <div class="dropdown">
+      <i id="boton-opciones" role="button" class="fa-solid fa-bars dropdown-toggle" onclick="toggleDropdown()">
+        <div class="dropdown-menu" id="dropdownMenu">
+
+          <a href="{% url 'index' %}" class="dropdown-item">
+            <i class="fa-solid fa-map"></i> Mapa
+          </a>
+          <a href="" class="dropdown-item">
+            <i class="fa-solid fa-list"></i> Historial de Alertas
+          </a>
+          <a href="" class="dropdown-item">
+            <i class="fa-solid fa-chart-pie"></i> Graficos
+          </a>
+
+        </div>
+      </i>
+    </div>
+
+    <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
+
+    <!-- Botón del menú Usuario -->
+    <div class="dropdown2">
+      <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
+        <div class="dropdown-menu2" id="dropdownUsuario">
+
+          <!-- ✅ Mostrar información del usuario si está logueado -->
+          {% if user.is_authenticated %}
+          <div class="user-info">
+            <strong>{{ user.nombre_usuario }} {{ user.apellido_pat_usuario }}</strong>
+            <small>{{ user.id_rol.nombre_rol }}</small>
+          </div>
+          <div class="dropdown-divider"></div>
+          {% endif %}
+
+          <!-- ✅ Enlace de Cerrar Sesión -->
+          <a href="{% url 'logout' %}" class="dropdown-item2 logout-btn">
+            <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+          </a>
+
+          <!-- Mantener otros enlaces si los necesitas -->
+          <a href="{% url 'Admin' %}" class="dropdown-item2">
+            <i class="fa-solid fa-list"></i> Historial de Alertas
+          </a>
+
+        </div>
+      </i>
+    </div>
+
+  </nav>
+
+  <!-- ✅ SECCIÓN DE GESTIÓN DE REQUERIMIENTOS -->
+  <div class="requerimientos-container">
+
+    <!-- Botón para abrir modal -->
+    <div class="requerimientos-header">
+      <button class="btn-agregar-requerimiento" onclick="abrirModalRequerimiento()">
+        <i class="fa-solid fa-plus"></i> Agregar Nuevo Requerimiento
+      </button>
+    </div>
+
+    <!-- Lista de requerimientos existentes -->
+    <div class="requerimientos-lista" id="requerimientos-lista">
+      <h3><i class="fa-solid fa-list"></i> Requerimientos Existentes</h3>
+      <div id="lista-requerimientos">
+        <!-- Los requerimientos se cargarán aquí dinámicamente -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ✅ MODAL PARA AGREGAR REQUERIMIENTO -->
+  <div id="modal-requerimiento" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📋 Agregar Nuevo Requerimiento</h2>
+        <span class="close" onclick="cerrarModalRequerimiento()">&times;</span>
+      </div>
+
+      <form id="form-requerimiento" class="modal-body" onsubmit="guardarRequerimientoCompleto(event)">
+        {% csrf_token %}
+
+        <!-- Familia -->
+        <div class="form-group">
+          <label for="familia">🏠 Familia:</label>
+          <div class="input-group">
+            <select id="select-familia" name="familia" onchange="cargarGrupos()">
+              <option value="">Seleccionar Familia</option>
+            </select>
+            <button type="button" class="btn-nuevo" onclick="mostrarInput('familia')">
+              <i class="fa-solid fa-plus"></i> Nueva
+            </button>
+          </div>
+          <div id="input-familia" class="input-nuevo" style="display: none;">
+            <input type="text" id="nueva-familia" placeholder="Nombre de nueva familia">
+            <button type="button" onclick="agregarFamilia()">Agregar</button>
+          </div>
+        </div>
+
+        <!-- Grupo -->
+        <div class="form-group">
+          <label for="grupo">📂 Grupo:</label>
+          <div class="input-group">
+            <select id="select-grupo" name="grupo" onchange="cargarSubgrupos()" disabled>
+              <option value="">Primero seleccione una familia</option>
+            </select>
+            <button type="button" class="btn-nuevo" onclick="mostrarInput('grupo')" disabled>
+              <i class="fa-solid fa-plus"></i> Nuevo
+            </button>
+          </div>
+          <div id="input-grupo" class="input-nuevo" style="display: none;">
+            <input type="text" id="nuevo-grupo" placeholder="Nombre del nuevo grupo">
+            <button type="button" onclick="agregarGrupo()">Agregar</button>
+          </div>
+        </div>
+
+        <!-- Subgrupo -->
+        <div class="form-group">
+          <label for="subgrupo">📁 Subgrupo:</label>
+          <div class="input-group">
+            <select id="select-subgrupo" name="subgrupo" onchange="habilitarRequerimiento()" disabled>
+              <option value="">Primero seleccione un grupo</option>
+            </select>
+            <button type="button" class="btn-nuevo" onclick="mostrarInput('subgrupo')" disabled>
+              <i class="fa-solid fa-plus"></i> Nuevo
+            </button>
+          </div>
+          <div id="input-subgrupo" class="input-nuevo" style="display: none;">
+            <input type="text" id="nuevo-subgrupo" placeholder="Nombre del nuevo subgrupo">
+            <button type="button" onclick="agregarSubgrupo()">Agregar</button>
+          </div>
+        </div>
+
+        <!-- Requerimiento -->
+        <div class="form-group">
+          <label for="requerimiento">📝 Requerimiento:</label>
+          <div class="input-group">
+            <select id="select-requerimiento" name="requerimiento" disabled>
+              <option value="">Primero seleccione un subgrupo</option>
+            </select>
+            <button type="button" class="btn-nuevo" onclick="mostrarInput('requerimiento')" disabled>
+              <i class="fa-solid fa-plus"></i> Nuevo
+            </button>
+          </div>
+          <div id="input-requerimiento" class="input-nuevo" style="display: none;">
+            <input type="text" id="nuevo-requerimiento" placeholder="Nombre del nuevo requerimiento">
+            <select id="clasificacion-requerimiento">
+              <option value="Baja">Baja</option>
+              <option value="Media">Media</option>
+              <option value="Alta">Alta</option>
+            </select>
+            <textarea id="descripcion-requerimiento" placeholder="Descripción del requerimiento"></textarea>
+            <button type="button" onclick="agregarRequerimiento()">Agregar</button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancelar" onclick="cerrarModalRequerimiento()">Cancelar</button>
+          <button type="submit" class="btn-guardar" disabled>Guardar Requerimiento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
+  <script src="{% static 'JavaScript/Requerimientos.js' %}"></script>
+
+</body>
+
+</html>

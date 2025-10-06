@@ -4,10 +4,12 @@ from django.contrib.auth import login, authenticate, logout # type: ignore
 from django.contrib.auth.decorators import login_required # type: ignore
 from django.http import JsonResponse # type: ignore
 from django.utils import timezone # type: ignore
-from .models import Usuario, Denuncia, Vehiculos, AsignacionesVehiculos, Roles, Turnos
+from .models import FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, Usuario, Denuncia, Vehiculos, AsignacionesVehiculos, Roles, Turnos
+from django.views.decorators.csrf import csrf_exempt # type: ignore
 import json
 
 # Vistas básicas de autenticación
+@login_required
 def index(request):
     # ✅ OBTENER DATOS SIN ELIMINARLOS (no usar pop)
     usuario_nombre = request.session.get('usuario_nombre', '')
@@ -24,7 +26,30 @@ def index(request):
     
     return render(request, 'index.html', context)
 
-
+@login_required
+def cerrar_sesion(request):
+    """Cerrar sesión de forma segura"""
+    try:
+        usuario_info = {
+            'nombre': f"{request.user.nombre_usuario} {request.user.apellido_pat_usuario}",
+            'rol': request.user.id_rol.nombre_rol
+        }
+        
+        # ✅ Cerrar sesión
+        logout(request)
+        
+        request.session.flush()
+        
+        request.session['alert_type'] = 'info'
+        request.session['alert_title'] = 'Sesión Cerrada'
+        request.session['alert_message'] = f'Hasta pronto, {usuario_info["nombre"]}! 👋'
+        
+        return redirect('login')
+        
+    except Exception as e:
+        
+        return redirect('login')
+    
 def iniciar_sesion(request):
     if request.method == 'POST':
         correo_electronico_usuario = request.POST.get('correo_electronico_usuario')
@@ -84,10 +109,6 @@ def registrar(request):
         return redirect('login')
     return render(request, 'registro.html')
 
-def cerrar_sesion(request):
-    logout(request)
-    return redirect('index')
-
 # Vistas de dashboard según rol
 @login_required
 def admin_dashboard(request):
@@ -103,85 +124,182 @@ def admin_dashboard(request):
         'total_denuncias': total_denuncias,
         'vehiculos_activos': vehiculos_activos,
     }
-    return render(request, 'admin/dashboard.html', context)
+    return render(request, 'Usuario/Admin.html', context)
 
-@login_required
-def operador_dashboard(request):
-    if not request.user.es_operador:
-        return redirect('index')
-    return render(request, 'operador/dashboard.html')
+# Vista para la página de administración
+def admin_requerimientos(request):
+    """Página principal de gestión de requerimientos"""
+    if not request.user.is_authenticated or not request.user.es_administrador:
+        return redirect('login')
+    
+    # Obtener todos los datos para mostrar
+    familias = FamiliaDenuncia.objects.all()
+    grupos = GrupoDenuncia.objects.all()
+    subgrupos = SubgrupoDenuncia.objects.all()
+    requerimientos = Requerimiento.objects.all()
+    
+    context = {
+        'familias': familias,
+        'grupos': grupos,
+        'subgrupos': subgrupos,
+        'requerimientos': requerimientos,
+    }
+    return render(request, 'CRUD/Admin/requerimientos.html', context)
 
-@login_required
-def conductor_dashboard(request):
-    if not request.user.es_conductor:
-        return redirect('index')
-    return render(request, 'conductor/dashboard.html')
-
-@login_required
-def civil_dashboard(request):
-    if not request.user.es_ciudadano:
-        return redirect('index')
-    return render(request, 'civil/dashboard.html')
-
-# Vistas de alertas (placeholder - necesitarías crear el modelo Alerta)
-@login_required
-def listar_alertas(request):
-    # Placeholder - necesitas crear el modelo Alerta primero
-    alertas = []  # Alerta.objects.all()
-    return render(request, 'alertas/listar.html', {'alertas': alertas})
-
-@login_required
-def agregar_alerta(request):
-    if request.method == 'POST':
-        # Lógica para agregar alerta
-        return redirect('listar_alertas')
-    return render(request, 'alertas/agregar.html')
-
-# Vistas de rutas (placeholder - necesitarías crear el modelo Ruta)
-@login_required
-def listar_rutas(request):
-    # Placeholder - necesitas crear el modelo Ruta primero
-    rutas = []  # RutaVehiculo.objects.all()
-    return render(request, 'rutas/listar.html', {'rutas': rutas})
-
-@login_required
-def agregar_ruta_view(request):
-    return render(request, 'rutas/agregar.html')
-
-@login_required
-def agregar_ruta(request):
-    if request.method == 'POST':
+# API para gestionar familias
+@csrf_exempt
+def api_familias(request):
+    if request.method == 'GET':
+        try:
+            familias = list(FamiliaDenuncia.objects.values('id_familia_denuncia', 'nombre_familia_denuncia'))
+            return JsonResponse(familias, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    elif request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # Lógica para agregar ruta
-            return JsonResponse({'success': True, 'message': 'Ruta agregada correctamente'})
+            nombre = data.get('nombre')
+            
+            if FamiliaDenuncia.objects.filter(nombre_familia_denuncia=nombre).exists():
+                return JsonResponse({'error': 'La familia ya existe'}, status=400)
+            
+            # Obtener el último ID para generar uno nuevo
+            ultima_familia = FamiliaDenuncia.objects.order_by('-id_familia_denuncia').first()
+            nuevo_id = ultima_familia.id_familia_denuncia + 1 if ultima_familia else 1
+            
+            familia = FamiliaDenuncia.objects.create(
+                id_familia_denuncia=nuevo_id,
+                nombre_familia_denuncia=nombre,
+                codigo_familia=nombre[:3].upper() + str(nuevo_id).zfill(3)
+            )
+            return JsonResponse({
+                'id': familia.id_familia_denuncia, 
+                'nombre': familia.nombre_familia_denuncia
+            })
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)})
-    return JsonResponse({'success': False, 'message': 'Método no permitido'})
+            return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
-def obtener_rutas_json(request):
-    # Placeholder - devolver rutas en JSON
-    rutas = []  # Convertir RutaVehiculo.objects.all() a JSON
-    return JsonResponse({'rutas': rutas})
+# API para gestionar grupos
+@csrf_exempt
+def api_grupos(request):
+    if request.method == 'GET':
+        try:
+            familia_id = request.GET.get('familia_id')
+            if familia_id:
+                grupos = list(GrupoDenuncia.objects.filter(
+                    id_familia_denuncia_id=familia_id
+                ).values('id_grupo_denuncia', 'nombre_grupo_denuncia'))
+            else:
+                grupos = list(GrupoDenuncia.objects.values('id_grupo_denuncia', 'nombre_grupo_denuncia', 'id_familia_denuncia_id'))
+            return JsonResponse(grupos, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            familia_id = data.get('familia_id')
+            
+            # Obtener el último ID para generar uno nuevo
+            ultimo_grupo = GrupoDenuncia.objects.order_by('-id_grupo_denuncia').first()
+            nuevo_id = ultimo_grupo.id_grupo_denuncia + 1 if ultimo_grupo else 1
+            
+            grupo = GrupoDenuncia.objects.create(
+                id_grupo_denuncia=nuevo_id,
+                nombre_grupo_denuncia=nombre,
+                id_familia_denuncia_id=familia_id,
+                codigo_grupo=nombre[:3].upper() + str(nuevo_id).zfill(3)
+            )
+            return JsonResponse({
+                'id': grupo.id_grupo_denuncia, 
+                'nombre': grupo.nombre_grupo_denuncia
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
-# Vistas adicionales para el sistema de denuncias
-@login_required
-def listar_denuncias(request):
-    if request.user.es_administrador or request.user.es_operador:
-        denuncias = Denuncia.objects.all().order_by('-fecha_denuncia')
-    else:
-        denuncias = Denuncia.objects.filter(id_solicitante=request.user).order_by('-fecha_denuncia')
+# API para gestionar subgrupos
+@csrf_exempt
+def api_subgrupos(request):
+    if request.method == 'GET':
+        try:
+            grupo_id = request.GET.get('grupo_id')
+            if grupo_id:
+                subgrupos = list(SubgrupoDenuncia.objects.filter(
+                    id_grupo_denuncia_id=grupo_id
+                ).values('id_subgrupo_denuncia', 'nombre_subgrupo_denuncia'))
+            else:
+                subgrupos = list(SubgrupoDenuncia.objects.values('id_subgrupo_denuncia', 'nombre_subgrupo_denuncia', 'id_grupo_denuncia_id'))
+            return JsonResponse(subgrupos, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
     
-    return render(request, 'denuncias/listar.html', {'denuncias': denuncias})
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            grupo_id = data.get('grupo_id')
+            
+            # Obtener el último ID para generar uno nuevo
+            ultimo_subgrupo = SubgrupoDenuncia.objects.order_by('-id_subgrupo_denuncia').first()
+            nuevo_id = ultimo_subgrupo.id_subgrupo_denuncia + 1 if ultimo_subgrupo else 1
+            
+            subgrupo = SubgrupoDenuncia.objects.create(
+                id_subgrupo_denuncia=nuevo_id,
+                nombre_subgrupo_denuncia=nombre,
+                id_grupo_denuncia_id=grupo_id,
+                codigo_subgrupo=nombre[:3].upper() + str(nuevo_id).zfill(3)
+            )
+            return JsonResponse({
+                'id': subgrupo.id_subgrupo_denuncia, 
+                'nombre': subgrupo.nombre_subgrupo_denuncia
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
 
-@login_required
-def crear_denuncia(request):
-    if not request.user.es_ciudadano:
-        return redirect('index')
+# API para gestionar requerimientos
+@csrf_exempt
+def api_requerimientos(request):
+    if request.method == 'GET':
+        try:
+            subgrupo_id = request.GET.get('subgrupo_id')
+            if subgrupo_id:
+                requerimientos = list(Requerimiento.objects.filter(
+                    id_subgrupo_denuncia_id=subgrupo_id
+                ).values('id_requerimiento', 'nombre_requerimiento', 'clasificacion_requerimiento'))
+            else:
+                requerimientos = list(Requerimiento.objects.values(
+                    'id_requerimiento', 'nombre_requerimiento', 'clasificacion_requerimiento', 'id_subgrupo_denuncia_id'
+                ))
+            return JsonResponse(requerimientos, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
     
-    if request.method == 'POST':
-        # Lógica para crear denuncia
-        return redirect('listar_denuncias')
-    
-    return render(request, 'denuncias/crear.html')
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            subgrupo_id = data.get('subgrupo_id')
+            clasificacion = data.get('clasificacion', 'Media')
+            descripcion = data.get('descripcion', '')
+            
+            # Obtener el último ID para generar uno nuevo
+            ultimo_requerimiento = Requerimiento.objects.order_by('-id_requerimiento').first()
+            nuevo_id = ultimo_requerimiento.id_requerimiento + 1 if ultimo_requerimiento else 1
+            
+            requerimiento = Requerimiento.objects.create(
+                id_requerimiento=nuevo_id,
+                nombre_requerimiento=nombre,
+                id_subgrupo_denuncia_id=subgrupo_id,
+                clasificacion_requerimiento=clasificacion,
+                descripcion_requerimiento=descripcion,
+                codigo_requerimiento=nombre[:3].upper() + str(nuevo_id).zfill(3)
+            )
+            return JsonResponse({
+                'id': requerimiento.id_requerimiento, 
+                'nombre': requerimiento.nombre_requerimiento,
+                'clasificacion': requerimiento.clasificacion_requerimiento
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

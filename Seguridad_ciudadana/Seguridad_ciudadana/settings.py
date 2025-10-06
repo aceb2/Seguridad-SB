@@ -13,7 +13,7 @@ AUTH_USER_MODEL = 'Seguridad.Usuario'
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]  # en desarrollo acepta todo
+ALLOWED_HOSTS = ["*"]  
 
 # ---------------- APPS ----------------
 INSTALLED_APPS = [
@@ -34,7 +34,7 @@ INSTALLED_APPS = [
 
 # ---------------- MIDDLEWARE ----------------
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # debe ir arriba
+    'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -69,8 +69,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Seguridad_SB',
         'USER': 'postgres',
-        'PASSWORD': '123456',  # La que creaste en Supabase
-        'HOST': 'localhost',  # Host de Supabase
+        'PASSWORD': '123456',
+        'HOST': 'localhost',  
         'PORT': '5432',
     }
 }
