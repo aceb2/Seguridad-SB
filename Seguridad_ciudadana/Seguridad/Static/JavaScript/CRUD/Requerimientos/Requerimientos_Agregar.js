@@ -8,6 +8,7 @@ let requerimientos = [];
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Inicializando sistema de requerimientos...');
     cargarDatosIniciales();
+    inicializarEventListeners();
 });
 
 // Cargar todos los datos iniciales
@@ -44,7 +45,7 @@ function mostrarExito(mensaje) {
     });
 }
 
-// Cargar familias desde la API (MEJORADA)
+// Cargar familias desde la API
 async function cargarFamilias() {
     try {
         console.log('📥 Cargando familias...');
@@ -72,7 +73,7 @@ async function cargarFamilias() {
     }
 }
 
-// Cargar grupos basados en familia seleccionada (MEJORADA)
+// Cargar grupos basados en familia seleccionada
 async function cargarGrupos() {
     try {
         const familiaId = document.getElementById('select-familia').value;
@@ -83,6 +84,7 @@ async function cargarGrupos() {
             selectGrupo.innerHTML = '<option value="">Primero seleccione una familia</option>';
             selectGrupo.disabled = true;
             btnNuevoGrupo.disabled = true;
+            habilitarBotonGuardar();
             return;
         }
         
@@ -113,43 +115,54 @@ async function cargarGrupos() {
         document.getElementById('select-requerimiento').innerHTML = '<option value="">Primero seleccione un subgrupo</option>';
         document.getElementById('select-requerimiento').disabled = true;
         
+        habilitarBotonGuardar();
+        
     } catch (error) {
         console.error('❌ Error cargando grupos:', error);
         mostrarError('Error cargando grupos: ' + error.message);
     }
 }
 
-// Cargar subgrupos basados en grupo seleccionado (MEJORADA)
+// Cargar subgrupos basados en grupo seleccionado
 async function cargarSubgrupos() {
     try {
         const grupoId = document.getElementById('select-grupo').value;
         const selectSubgrupo = document.getElementById('select-subgrupo');
         const btnNuevoSubgrupo = document.querySelector('button[onclick="mostrarInput(\'subgrupo\')"]');
         
+        console.log(`🔧 Cargando subgrupos para grupo: ${grupoId}`);
+        
         if (!grupoId) {
             selectSubgrupo.innerHTML = '<option value="">Primero seleccione un grupo</option>';
             selectSubgrupo.disabled = true;
             btnNuevoSubgrupo.disabled = true;
+            habilitarBotonGuardar();
             return;
         }
         
-        console.log(`📥 Cargando subgrupos para grupo ${grupoId}...`);
         const response = await fetch(`/api/subgrupos/?grupo_id=${grupoId}`);
+        
+        console.log('🔧 Response status:', response.status);
         
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
         }
         
-        subgrupos = await response.json();
-        console.log('✅ Subgrupos cargados:', subgrupos);
+        const subgruposData = await response.json();
+        console.log('🔧 Subgrupos recibidos:', subgruposData);
         
         selectSubgrupo.innerHTML = '<option value="">Seleccionar Subgrupo</option>';
-        subgrupos.forEach(subgrupo => {
-            const option = document.createElement('option');
-            option.value = subgrupo.id_subgrupo_denuncia || subgrupo.id;
-            option.textContent = subgrupo.nombre_subgrupo_denuncia;
-            selectSubgrupo.appendChild(option);
-        });
+        
+        if (subgruposData.length === 0) {
+            selectSubgrupo.innerHTML += '<option value="" disabled>No hay subgrupos para este grupo</option>';
+        } else {
+            subgruposData.forEach(subgrupo => {
+                const option = document.createElement('option');
+                option.value = subgrupo.id_subgrupo_denuncia || subgrupo.id;
+                option.textContent = subgrupo.nombre_subgrupo_denuncia || subgrupo.nombre;
+                selectSubgrupo.appendChild(option);
+            });
+        }
         
         selectSubgrupo.disabled = false;
         btnNuevoSubgrupo.disabled = false;
@@ -158,14 +171,15 @@ async function cargarSubgrupos() {
         document.getElementById('select-requerimiento').innerHTML = '<option value="">Primero seleccione un subgrupo</option>';
         document.getElementById('select-requerimiento').disabled = true;
         
+        habilitarBotonGuardar();
+        
     } catch (error) {
         console.error('❌ Error cargando subgrupos:', error);
         mostrarError('Error cargando subgrupos: ' + error.message);
     }
 }
 
-
-// Habilitar requerimiento cuando se selecciona subgrupo (MEJORADA)
+// Habilitar requerimiento cuando se selecciona subgrupo
 async function habilitarRequerimiento() {
     try {
         const subgrupoId = document.getElementById('select-subgrupo').value;
@@ -176,6 +190,7 @@ async function habilitarRequerimiento() {
             selectRequerimiento.innerHTML = '<option value="">Primero seleccione un subgrupo</option>';
             selectRequerimiento.disabled = true;
             btnNuevoRequerimiento.disabled = true;
+            habilitarBotonGuardar();
             return;
         }
         
@@ -200,6 +215,8 @@ async function habilitarRequerimiento() {
         selectRequerimiento.disabled = false;
         btnNuevoRequerimiento.disabled = false;
         
+        habilitarBotonGuardar();
+        
     } catch (error) {
         console.error('❌ Error cargando requerimientos:', error);
         mostrarError('Error cargando requerimientos: ' + error.message);
@@ -218,9 +235,16 @@ function mostrarInput(tipo) {
     
     // Mostrar el input seleccionado
     inputDiv.style.display = 'block';
+    
+    // Si es requerimiento, actualizar el estado del botón guardar
+    if (tipo === 'requerimiento') {
+        setTimeout(() => {
+            habilitarBotonGuardar();
+        }, 100);
+    }
 }
 
-// Agregar nueva familia (MEJORADA)
+// Agregar nueva familia
 async function agregarFamilia() {
     const nombre = document.getElementById('nueva-familia').value.trim();
     
@@ -238,24 +262,42 @@ async function agregarFamilia() {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCSRFToken()
             },
-            body: JSON.stringify({ nombre: nombre })
+            body: JSON.stringify({ 
+                nombre: nombre 
+            })
+        });
+        
+        console.log('🔧 DEBUG Familia - Respuesta:', {
+            status: response.status,
+            ok: response.ok
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Error response:', errorText);
+            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
         }
         
         const nuevaFamilia = await response.json();
         console.log('✅ Familia agregada:', nuevaFamilia);
         
+        // Validar respuesta
+        if (!nuevaFamilia.id_familia_denuncia && !nuevaFamilia.id) {
+            throw new Error('El servidor no devolvió un ID válido');
+        }
+        
+        // Limpiar formulario
         document.getElementById('nueva-familia').value = '';
         document.getElementById('input-familia').style.display = 'none';
         
+        // Recargar familias
         await cargarFamilias();
         
         // Seleccionar la nueva familia
-        document.getElementById('select-familia').value = nuevaFamilia.id_familia_denuncia || nuevaFamilia.id;
+        const familiaId = nuevaFamilia.id_familia_denuncia || nuevaFamilia.id;
+        document.getElementById('select-familia').value = familiaId;
+        
+        // Cargar grupos para la nueva familia
         await cargarGrupos();
         
         mostrarExito('Familia agregada correctamente');
@@ -266,7 +308,7 @@ async function agregarFamilia() {
     }
 }
 
-// Agregar nuevo grupo (MEJORADA)
+// Agregar nuevo grupo
 async function agregarGrupo() {
     const nombre = document.getElementById('nuevo-grupo').value.trim();
     const familiaId = document.getElementById('select-familia').value;
@@ -291,21 +333,37 @@ async function agregarGrupo() {
             })
         });
         
+        console.log('🔧 DEBUG Grupo - Respuesta:', {
+            status: response.status,
+            ok: response.ok
+        });
+        
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Error response:', errorText);
+            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
         }
         
         const nuevoGrupo = await response.json();
         console.log('✅ Grupo agregado:', nuevoGrupo);
         
+        // Validar respuesta
+        if (!nuevoGrupo.id_grupo_denuncia && !nuevoGrupo.id) {
+            throw new Error('El servidor no devolvió un ID válido');
+        }
+        
+        // Limpiar formulario
         document.getElementById('nuevo-grupo').value = '';
         document.getElementById('input-grupo').style.display = 'none';
         
+        // Recargar grupos
         await cargarGrupos();
         
         // Seleccionar el nuevo grupo
-        document.getElementById('select-grupo').value = nuevoGrupo.id_grupo_denuncia || nuevoGrupo.id;
+        const grupoId = nuevoGrupo.id_grupo_denuncia || nuevoGrupo.id;
+        document.getElementById('select-grupo').value = grupoId;
+        
+        // Cargar subgrupos para el nuevo grupo
         await cargarSubgrupos();
         
         mostrarExito('Grupo agregado correctamente');
@@ -316,7 +374,7 @@ async function agregarGrupo() {
     }
 }
 
-// Agregar nuevo subgrupo (MEJORADA)
+// Agregar nuevo subgrupo
 async function agregarSubgrupo() {
     const nombre = document.getElementById('nuevo-subgrupo').value.trim();
     const grupoId = document.getElementById('select-grupo').value;
@@ -342,20 +400,32 @@ async function agregarSubgrupo() {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Error response text:', errorText);
+            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
         }
         
         const nuevoSubgrupo = await response.json();
         console.log('✅ Subgrupo agregado:', nuevoSubgrupo);
         
+        // Validar que el subgrupo tenga los campos esperados
+        if (!nuevoSubgrupo.id_subgrupo_denuncia && !nuevoSubgrupo.id) {
+            console.error('❌ El servidor no devolvió un ID válido:', nuevoSubgrupo);
+            throw new Error('El servidor no devolvió un ID válido para el subgrupo');
+        }
+        
+        // Limpiar formulario
         document.getElementById('nuevo-subgrupo').value = '';
         document.getElementById('input-subgrupo').style.display = 'none';
         
+        // Recargar los subgrupos
         await cargarSubgrupos();
         
         // Seleccionar el nuevo subgrupo
-        document.getElementById('select-subgrupo').value = nuevoSubgrupo.id_subgrupo_denuncia || nuevoSubgrupo.id;
+        const subgrupoId = nuevoSubgrupo.id_subgrupo_denuncia || nuevoSubgrupo.id;
+        document.getElementById('select-subgrupo').value = subgrupoId;
+        
+        // Habilitar requerimientos
         await habilitarRequerimiento();
         
         mostrarExito('Subgrupo agregado correctamente');
@@ -366,85 +436,130 @@ async function agregarSubgrupo() {
     }
 }
 
-// Agregar nuevo requerimiento (MEJORADA)
-async function agregarRequerimiento() {
-    const nombre = document.getElementById('nuevo-requerimiento').value.trim();
-    const subgrupoId = document.getElementById('select-subgrupo').value;
-    const clasificacion = document.getElementById('clasificacion-requerimiento').value;
-    const descripcion = document.getElementById('descripcion-requerimiento').value.trim();
-    
-    if (!nombre || !subgrupoId) {
-        mostrarError('Ingrese un nombre y seleccione un subgrupo');
-        return;
-    }
-    
-    try {
-        console.log(`➕ Agregando nuevo requerimiento: ${nombre} para subgrupo ${subgrupoId}`);
-        
-        const response = await fetch('/api/requerimientos/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCSRFToken()
-            },
-            body: JSON.stringify({ 
-                nombre: nombre,
-                subgrupo_id: subgrupoId,
-                clasificacion: clasificacion,
-                descripcion: descripcion
-            })
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || `Error HTTP: ${response.status}`);
-        }
-        
-        const nuevoRequerimiento = await response.json();
-        console.log('✅ Requerimiento agregado:', nuevoRequerimiento);
-        
-        // Limpiar formulario
-        document.getElementById('nuevo-requerimiento').value = '';
-        document.getElementById('descripcion-requerimiento').value = '';
-        document.getElementById('input-requerimiento').style.display = 'none';
-        
-        await habilitarRequerimiento();
-        await cargarTodosLosRequerimientos();
-        
-        // Seleccionar el nuevo requerimiento
-        document.getElementById('select-requerimiento').value = nuevoRequerimiento.id_requerimiento || nuevoRequerimiento.id;
-        
-        mostrarExito('Requerimiento agregado correctamente');
-        
-    } catch (error) {
-        console.error('❌ Error agregando requerimiento:', error);
-        mostrarError('Error al agregar requerimiento: ' + error.message);
-    }
-}
-
-// Función para guardar el requerimiento completo
+// Función para guardar el requerimiento completo (CORREGIDA)
 async function guardarRequerimientoCompleto(event) {
     event.preventDefault();
     
-    const requerimientoId = document.getElementById('select-requerimiento').value;
+    const inputRequerimientoVisible = document.getElementById('input-requerimiento').style.display !== 'none';
+    const nuevoRequerimientoNombre = document.getElementById('nuevo-requerimiento').value.trim();
+    const requerimientoSeleccionado = document.getElementById('select-requerimiento').value;
     
-    if (!requerimientoId) {
-        Swal.fire('Error', 'Debe seleccionar o crear un requerimiento', 'warning');
+    console.log('🔧 Debug guardarRequerimientoCompleto:', {
+        inputRequerimientoVisible,
+        nuevoRequerimientoNombre,
+        requerimientoSeleccionado
+    });
+
+    // Caso 1: Hay un nuevo requerimiento escrito
+    if (inputRequerimientoVisible && nuevoRequerimientoNombre) {
+        console.log('📝 Creando nuevo requerimiento...');
+        
+        try {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Creando requerimiento...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Crear el nuevo requerimiento
+            const subgrupoId = document.getElementById('select-subgrupo').value;
+            const clasificacion = document.getElementById('clasificacion-requerimiento').value;
+            const descripcion = document.getElementById('descripcion-requerimiento').value.trim();
+
+            const response = await fetch('/api/requerimientos/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCSRFToken()
+                },
+                body: JSON.stringify({ 
+                    nombre: nuevoRequerimientoNombre,
+                    subgrupo_id: subgrupoId,
+                    clasificacion: clasificacion,
+                    descripcion: descripcion
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+            }
+
+            const nuevoRequerimiento = await response.json();
+            console.log('✅ Nuevo requerimiento creado:', nuevoRequerimiento);
+
+            // Cerrar loading
+            Swal.close();
+
+            // Mostrar éxito y recargar
+            mostrarExito('Requerimiento creado y guardado correctamente. Recargando página...');
+
+            // Recargar después de 2 segundos
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+
+        } catch (error) {
+            console.error('❌ Error creando requerimiento:', error);
+            Swal.close();
+            mostrarError('Error al crear el requerimiento: ' + error.message);
+        }
+    }
+    // Caso 2: Hay un requerimiento seleccionado del dropdown
+    else if (requerimientoSeleccionado) {
+        console.log('💾 Guardando requerimiento existente...');
+        
+        try {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Guardando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Simular un pequeño delay para que se vea el loading
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Cerrar loading
+            Swal.close();
+
+            // Cerrar modal
+            cerrarModalRequerimiento();
+
+            // Mostrar éxito y recargar
+            mostrarExito('Requerimiento guardado correctamente. Recargando página...');
+
+            // Recargar después de 2 segundos
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+
+        } catch (error) {
+            console.error('❌ Error guardando requerimiento:', error);
+            Swal.close();
+            mostrarError('Error al guardar el requerimiento: ' + error.message);
+        }
+    }
+    // Caso 3: No hay nada seleccionado ni escrito
+    else {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Requerimiento no configurado',
+            text: 'Debe seleccionar un requerimiento existente o crear uno nuevo',
+            confirmButtonText: 'Entendido'
+        });
         return;
     }
-    
-    Swal.fire('Éxito', 'Requerimiento configurado correctamente', 'success');
-    cerrarModalRequerimiento();
-    await cargarTodosLosRequerimientos();
 }
 
-// Después de recibir la respuesta
-console.log('🔧 DEBUG - Respuesta del servidor:', {
-    status: response.status,
-    result: result
-});
-
-// Cargar todos los requerimientos para la lista (MEJORADA)
+// Cargar todos los requerimientos para la lista
 async function cargarTodosLosRequerimientos() {
     try {
         console.log('📥 Cargando todos los requerimientos...');
@@ -486,6 +601,10 @@ async function cargarTodosLosRequerimientos() {
 // Funciones del modal
 function abrirModalRequerimiento() {
     document.getElementById('modal-requerimiento').style.display = 'block';
+    // Inicializar el estado del botón cuando se abre el modal
+    setTimeout(() => {
+        habilitarBotonGuardar();
+    }, 100);
 }
 
 function cerrarModalRequerimiento() {
@@ -496,6 +615,8 @@ function cerrarModalRequerimiento() {
     document.querySelectorAll('.input-nuevo').forEach(input => {
         input.style.display = 'none';
     });
+    // Resetear el botón guardar
+    habilitarBotonGuardar();
 }
 
 // Obtener token CSRF
@@ -508,5 +629,90 @@ window.onclick = function(event) {
     const modal = document.getElementById('modal-requerimiento');
     if (event.target === modal) {
         cerrarModalRequerimiento();
+    }
+}
+
+// Función para habilitar el botón de guardar (ACTUALIZADA)
+function habilitarBotonGuardar() {
+    const requerimientoId = document.getElementById('select-requerimiento').value;
+    const inputRequerimientoVisible = document.getElementById('input-requerimiento').style.display !== 'none';
+    const nuevoRequerimientoNombre = document.getElementById('nuevo-requerimiento').value.trim();
+    const btnGuardar = document.querySelector('.btn-guardar');
+    
+    if (!btnGuardar) {
+        console.error('❌ Botón guardar no encontrado');
+        return;
+    }
+    
+    // Habilitar si:
+    // - Hay un requerimiento seleccionado O
+    // - El input de nuevo requerimiento está visible Y tiene texto
+    const puedeGuardar = requerimientoId || (inputRequerimientoVisible && nuevoRequerimientoNombre);
+    
+    console.log('🔧 Estado botón guardar:', {
+        puedeGuardar,
+        requerimientoId,
+        inputRequerimientoVisible,
+        nuevoRequerimientoNombre
+    });
+    
+    if (puedeGuardar) {
+        btnGuardar.disabled = false;
+        btnGuardar.style.backgroundColor = '#28a745';
+        btnGuardar.style.cursor = 'pointer';
+    } else {
+        btnGuardar.disabled = true;
+        btnGuardar.style.backgroundColor = '#6c757d';
+        btnGuardar.style.cursor = 'not-allowed';
+    }
+}
+
+// Función para inicializar event listeners
+function inicializarEventListeners() {
+    console.log('🔧 Inicializando event listeners...');
+    
+    // Escuchar cambios en el input de nuevo requerimiento
+    const nuevoRequerimientoInput = document.getElementById('nuevo-requerimiento');
+    if (nuevoRequerimientoInput) {
+        nuevoRequerimientoInput.addEventListener('input', habilitarBotonGuardar);
+        console.log('✅ Event listener agregado a nuevo-requerimiento');
+    } else {
+        console.error('❌ Input nuevo-requerimiento no encontrado');
+    }
+    
+    // Escuchar cambios en el select de requerimiento
+    const selectRequerimiento = document.getElementById('select-requerimiento');
+    if (selectRequerimiento) {
+        selectRequerimiento.addEventListener('change', habilitarBotonGuardar);
+        console.log('✅ Event listener agregado a select-requerimiento');
+    } else {
+        console.error('❌ Select select-requerimiento no encontrado');
+    }
+    
+    // Escuchar cambios en otros selects que afectan el estado
+    const selectFamilia = document.getElementById('select-familia');
+    if (selectFamilia) {
+        selectFamilia.addEventListener('change', habilitarBotonGuardar);
+    }
+    
+    const selectGrupo = document.getElementById('select-grupo');
+    if (selectGrupo) {
+        selectGrupo.addEventListener('change', habilitarBotonGuardar);
+    }
+    
+    const selectSubgrupo = document.getElementById('select-subgrupo');
+    if (selectSubgrupo) {
+        selectSubgrupo.addEventListener('change', habilitarBotonGuardar);
+    }
+    
+    // Inicializar el botón guardar
+    const btnGuardar = document.querySelector('.btn-guardar');
+    if (btnGuardar) {
+        btnGuardar.disabled = true;
+        btnGuardar.style.backgroundColor = '#6c757d';
+        btnGuardar.style.cursor = 'not-allowed';
+        console.log('✅ Botón guardar inicializado');
+    } else {
+        console.error('❌ Botón guardar no encontrado');
     }
 }

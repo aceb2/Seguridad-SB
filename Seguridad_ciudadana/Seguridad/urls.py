@@ -10,10 +10,15 @@ urlpatterns = [
     path('Admin/requerimientos/', views.admin_requerimientos, name='admin_requerimientos'),
     
     # APIs para requerimientos
-    path('api/familias/', views.api_familias, name='api_familias'),
-    path('api/grupos/', views.api_grupos, name='api_grupos'),
-    path('api/subgrupos/', views.api_subgrupos, name='api_subgrupos'),
     path('api/requerimientos/', views.api_requerimientos, name='api_requerimientos'),
+    path('api/requerimientos/<int:requerimiento_id>/', views.api_requerimiento_detalle, name='api_requerimiento_detalle'),
+    path('api/requerimientos/<int:requerimiento_id>/ruta/', views.api_requerimiento_ruta_completa, name='api_requerimiento_ruta_completa'),
     
-
+    # APIs para familias, grupos, subgrupos
+    path('api/familias/', views.api_familias, name='api_familias'),
+    path('api/familias/<int:familia_id>/', views.api_familia_detalle, name='api_familia_detalle'),
+    path('api/grupos/', views.api_grupos, name='api_grupos'),
+    path('api/grupos/<int:grupo_id>/', views.api_grupo_detalle, name='api_grupo_detalle'),
+    path('api/subgrupos/', views.api_subgrupos, name='api_subgrupos'),
+    path('api/subgrupos/<int:subgrupo_id>/', views.api_subgrupo_detalle, name='api_subgrupo_detalle'),
 ]

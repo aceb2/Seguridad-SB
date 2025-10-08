@@ -6,7 +6,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{% static 'CSS/Navbar.css' %}">
-  <link rel="stylesheet" href="{% static 'CSS/Usuario/Admin.css' %}">
+  <link rel="stylesheet" href="{% static 'CSS/CRUD/requerimientos.css' %}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
@@ -45,7 +45,6 @@
       <i id="boton-usuario" role="button" class="fa-solid fa-user dropdown-toggle2" onclick="toggleDropdown2()">
         <div class="dropdown-menu2" id="dropdownUsuario">
 
-          <!-- ✅ Mostrar información del usuario si está logueado -->
           {% if user.is_authenticated %}
           <div class="user-info">
             <strong>{{ user.nombre_usuario }} {{ user.apellido_pat_usuario }}</strong>
@@ -54,12 +53,10 @@
           <div class="dropdown-divider"></div>
           {% endif %}
 
-          <!-- ✅ Enlace de Cerrar Sesión -->
           <a href="{% url 'logout' %}" class="dropdown-item2 logout-btn">
             <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
           </a>
 
-          <!-- Mantener otros enlaces si los necesitas -->
           <a href="{% url 'Admin' %}" class="dropdown-item2">
             <i class="fa-solid fa-list"></i> Historial de Alertas
           </a>
@@ -69,123 +66,293 @@
     </div>
 
   </nav>
+  <div class="requerimientos">
 
-  <!-- ✅ SECCIÓN DE GESTIÓN DE REQUERIMIENTOS -->
-  <div class="requerimientos-container">
+    <!-- Bloque comando Agregar Requerimiento -->
+    <div class="requerimientos-container">
 
-    <!-- Botón para abrir modal -->
-    <div class="requerimientos-header">
-      <button class="btn-agregar-requerimiento" onclick="abrirModalRequerimiento()">
-        <i class="fa-solid fa-plus"></i> Agregar Nuevo Requerimiento
-      </button>
+      <div class="requerimientos-header">
+        <button class="btn-agregar-requerimiento" onclick="abrirModalRequerimiento()">
+          <i class="fa-solid fa-plus"></i> Agregar Nuevo Requerimiento
+        </button>
+      </div>
+
     </div>
 
-    <!-- Lista de requerimientos existentes -->
-    <div class="requerimientos-lista" id="requerimientos-lista">
-      <h3><i class="fa-solid fa-list"></i> Requerimientos Existentes</h3>
-      <div id="lista-requerimientos">
-        <!-- Los requerimientos se cargarán aquí dinámicamente -->
+    <div id="modal-requerimiento" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>📋 Agregar Nuevo Requerimiento</h2>
+          <span class="close" onclick="cerrarModalRequerimiento()">&times;</span>
+        </div>
+
+        <form id="form-requerimiento" class="modal-body" onsubmit="guardarRequerimientoCompleto(event)">
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="familia">🏠 Familia:</label>
+            <div class="input-group">
+              <select id="select-familia" name="familia" onchange="cargarGrupos()">
+                <option value="">Seleccionar Familia</option>
+              </select>
+              <button type="button" class="btn-nuevo" onclick="mostrarInput('familia')">
+                <i class="fa-solid fa-plus"></i> Nueva
+              </button>
+            </div>
+            <div id="input-familia" class="input-nuevo" style="display: none;">
+              <input type="text" id="nueva-familia" placeholder="Nombre de nueva familia">
+              <button type="button" onclick="agregarFamilia()">Agregar</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="grupo">📂 Grupo:</label>
+            <div class="input-group">
+              <select id="select-grupo" name="grupo" onchange="cargarSubgrupos()" disabled>
+                <option value="">Primero seleccione una familia</option>
+              </select>
+              <button type="button" class="btn-nuevo" onclick="mostrarInput('grupo')" disabled>
+                <i class="fa-solid fa-plus"></i> Nuevo
+              </button>
+            </div>
+            <div id="input-grupo" class="input-nuevo" style="display: none;">
+              <input type="text" id="nuevo-grupo" placeholder="Nombre del nuevo grupo">
+              <button type="button" onclick="agregarGrupo()">Agregar</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="subgrupo">📁 Subgrupo:</label>
+            <div class="input-group">
+              <select id="select-subgrupo" name="subgrupo" onchange="habilitarRequerimiento()" disabled>
+                <option value="">Primero seleccione un grupo</option>
+              </select>
+              <button type="button" class="btn-nuevo" onclick="mostrarInput('subgrupo')" disabled>
+                <i class="fa-solid fa-plus"></i> Nuevo
+              </button>
+            </div>
+            <div id="input-subgrupo" class="input-nuevo" style="display: none;">
+              <input type="text" id="nuevo-subgrupo" placeholder="Nombre del nuevo subgrupo">
+              <button type="button" onclick="agregarSubgrupo()">Agregar</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="requerimiento">📝 Requerimiento:</label>
+            <div class="input-group">
+              <select id="select-requerimiento" name="requerimiento" disabled>
+                <option value="">Primero seleccione un subgrupo</option>
+              </select>
+              <button type="button" class="btn-nuevo" onclick="mostrarInput('requerimiento')" disabled>
+                <i class="fa-solid fa-plus"></i> Nuevo
+              </button>
+            </div>
+            <div id="input-requerimiento" class="input-nuevo" style="display: none;">
+              <input type="text" id="nuevo-requerimiento" placeholder="Nombre del nuevo requerimiento">
+              <select id="clasificacion-requerimiento">
+                <option value="Baja">Baja</option>
+                <option value="Media">Media</option>
+                <option value="Alta">Alta</option>
+              </select>
+              <textarea id="descripcion-requerimiento" placeholder="Descripción del requerimiento"></textarea>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancelar" onclick="cerrarModalRequerimiento()">Cancelar</button>
+            <button type="submit" class="btn-guardar" id="btn-guardar-requerimiento">Guardar Requerimiento</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- Bloque comando Actualizar Requerimiento -->
+    <div class="requerimientos-actualizar-container">
+
+      <div class="requerimientos-actualizar-header">
+        <button class="btn-actualizar-requerimiento" onclick="abrirModalActualizarRequerimiento()">
+          <i class="fa-solid fa-pen-to-square"></i> Actualizar Requerimiento Existente
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Modal para Actualizar Requerimiento -->
+    <div id="modal-actualizar-requerimiento" class="modal-actualizar">
+      <div class="modal-actualizar-content">
+        <div class="modal-actualizar-header">
+          <h2>🔄 Actualizar Requerimiento Existente</h2>
+          <span class="close-actualizar" onclick="cerrarModalActualizarRequerimiento()">&times;</span>
+        </div>
+
+        <form id="form-actualizar-requerimiento" class="modal-actualizar-body">
+          {% csrf_token %}
+
+          <!-- Búsqueda y selección de requerimiento existente -->
+          <div class="form-group-actualizar">
+            <label for="buscar-requerimiento">🔍 Buscar Requerimiento:</label>
+            <div class="search-container-actualizar">
+              <input type="text" id="buscar-requerimiento" placeholder="Escriba para buscar requerimientos..."
+                class="search-input-actualizar" onkeyup="buscarRequerimientos()">
+              <i class="fa-solid fa-magnifying-glass search-icon-actualizar"></i>
+            </div>
+            <div id="lista-requerimientos-actualizar" class="requerimientos-list-actualizar"></div>
+          </div>
+
+          <!-- Información del requerimiento seleccionado -->
+          <div id="info-requerimiento-actualizar" class="requerimiento-info-actualizar" style="display: none;">
+            <div class="selected-requerimiento-actualizar">
+              <h4>📋 Requerimiento Seleccionado:</h4>
+              <div class="requerimiento-details-actualizar">
+                <div class="detail-item-actualizar">
+                  <strong>Nombre:</strong>
+                  <span id="nombre-requerimiento-actualizar"></span>
+                </div>
+                <div class="detail-item-actualizar">
+                  <strong>Clasificación:</strong>
+                  <span id="clasificacion-requerimiento-actualizar" class="clasificacion-badge-actualizar"></span>
+                </div>
+                <div class="detail-item-actualizar">
+                  <strong>Familia → Grupo → Subgrupo:</strong>
+                  <span id="ruta-completa-actualizar"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario de edición -->
+          <div id="form-edicion-actualizar" class="form-edicion-actualizar" style="display: none;">
+            <h4>✏️ Editar Información</h4>
+
+            <div class="form-group-actualizar">
+              <label for="nuevo-nombre-requerimiento">Nuevo Nombre:</label>
+              <input type="text" id="nuevo-nombre-requerimiento" class="input-actualizar"
+                placeholder="Ingrese el nuevo nombre del requerimiento">
+            </div>
+
+            <div class="form-group-actualizar">
+              <label for="nueva-clasificacion-requerimiento">Nueva Clasificación:</label>
+              <select id="nueva-clasificacion-requerimiento" class="select-actualizar">
+                <option value="Baja">Baja</option>
+                <option value="Media">Media</option>
+                <option value="Alta">Alta</option>
+              </select>
+            </div>
+
+            <div class="form-group-actualizar">
+              <label for="nueva-descripcion-requerimiento">Nueva Descripción:</label>
+              <textarea id="nueva-descripcion-requerimiento" class="textarea-actualizar"
+                placeholder="Ingrese la nueva descripción del requerimiento" rows="3"></textarea>
+            </div>
+
+            <!-- Opción para cambiar de subgrupo -->
+            <div class="form-group-actualizar">
+              <label for="cambiar-subgrupo-actualizar">🔀 Cambiar a otro Subgrupo (opcional):</label>
+              <div class="cascade-selectors-actualizar">
+                <select id="select-familia-actualizar" class="select-actualizar" onchange="cargarGruposActualizar()">
+                  <option value="">Seleccionar Familia</option>
+                </select>
+
+                <select id="select-grupo-actualizar" class="select-actualizar" onchange="cargarSubgruposActualizar()"
+                  disabled>
+                  <option value="">Seleccionar Grupo</option>
+                </select>
+
+                <select id="select-subgrupo-actualizar" class="select-actualizar" disabled>
+                  <option value="">Seleccionar Subgrupo</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="warning-actualizar">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              <span>Al cambiar el subgrupo, el requerimiento se moverá a una nueva categoría</span>
+            </div>
+          </div>
+
+          <div class="modal-actualizar-footer">
+            <button type="button" class="btn-cancelar-actualizar" onclick="cerrarModalActualizarRequerimiento()">
+              <i class="fa-solid fa-xmark"></i> Cancelar
+            </button>
+            <button type="button" id="btn-actualizar-requerimiento" class="btn-actualizar" disabled
+              onclick="actualizarRequerimiento()">
+              <i class="fa-solid fa-floppy-disk"></i> Actualizar Requerimiento
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- Bloque comando Eliminar Elementos -->
+    <div class="requerimientos-container">
+
+      <div class="requerimientos-header">
+        <button class="btn-eliminar-requerimiento" onclick="abrirModalEliminar()">
+          <i class="fa-solid fa-trash"></i> Eliminar Elementos
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Modal para Eliminar Elementos -->
+    <div id="modal-eliminar" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>🗑️ Eliminar Elementos</h2>
+          <span class="close" onclick="cerrarModalEliminar()">&times;</span>
+        </div>
+
+        <div class="modal-body">
+          {% csrf_token %}
+          
+          <!-- Selector de tipo de elemento a eliminar -->
+          <div class="form-group">
+            <label for="tipo-elemento-eliminar">📝 Tipo de Elemento:</label>
+            <select id="tipo-elemento-eliminar" class="select-eliminar" onchange="cambiarTipoEliminacion()">
+              <option value="">Seleccionar tipo de elemento</option>
+              <option value="requerimiento">Requerimiento</option>
+              <option value="subgrupo">Subgrupo</option>
+              <option value="grupo">Grupo</option>
+              <option value="familia">Familia</option>
+            </select>
+          </div>
+
+          <!-- Contenedor dinámico según el tipo seleccionado -->
+          <div id="contenedor-eliminacion">
+            <div class="mensaje-inicial-eliminar">
+              <i class="fa-solid fa-info-circle"></i>
+              <p>Seleccione el tipo de elemento que desea eliminar</p>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-cancelar" onclick="cerrarModalEliminar()">Cancelar</button>
+            <button type="button" class="btn-eliminar-confirmar" id="btn-eliminar-confirmar" disabled 
+                    onclick="confirmarEliminacion()">
+              <i class="fa-solid fa-trash"></i> Eliminar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
   </div>
 
-  <!-- ✅ MODAL PARA AGREGAR REQUERIMIENTO -->
-  <div id="modal-requerimiento" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>📋 Agregar Nuevo Requerimiento</h2>
-        <span class="close" onclick="cerrarModalRequerimiento()">&times;</span>
-      </div>
-
-      <form id="form-requerimiento" class="modal-body" onsubmit="guardarRequerimientoCompleto(event)">
-        {% csrf_token %}
-
-        <!-- Familia -->
-        <div class="form-group">
-          <label for="familia">🏠 Familia:</label>
-          <div class="input-group">
-            <select id="select-familia" name="familia" onchange="cargarGrupos()">
-              <option value="">Seleccionar Familia</option>
-            </select>
-            <button type="button" class="btn-nuevo" onclick="mostrarInput('familia')">
-              <i class="fa-solid fa-plus"></i> Nueva
-            </button>
-          </div>
-          <div id="input-familia" class="input-nuevo" style="display: none;">
-            <input type="text" id="nueva-familia" placeholder="Nombre de nueva familia">
-            <button type="button" onclick="agregarFamilia()">Agregar</button>
-          </div>
-        </div>
-
-        <!-- Grupo -->
-        <div class="form-group">
-          <label for="grupo">📂 Grupo:</label>
-          <div class="input-group">
-            <select id="select-grupo" name="grupo" onchange="cargarSubgrupos()" disabled>
-              <option value="">Primero seleccione una familia</option>
-            </select>
-            <button type="button" class="btn-nuevo" onclick="mostrarInput('grupo')" disabled>
-              <i class="fa-solid fa-plus"></i> Nuevo
-            </button>
-          </div>
-          <div id="input-grupo" class="input-nuevo" style="display: none;">
-            <input type="text" id="nuevo-grupo" placeholder="Nombre del nuevo grupo">
-            <button type="button" onclick="agregarGrupo()">Agregar</button>
-          </div>
-        </div>
-
-        <!-- Subgrupo -->
-        <div class="form-group">
-          <label for="subgrupo">📁 Subgrupo:</label>
-          <div class="input-group">
-            <select id="select-subgrupo" name="subgrupo" onchange="habilitarRequerimiento()" disabled>
-              <option value="">Primero seleccione un grupo</option>
-            </select>
-            <button type="button" class="btn-nuevo" onclick="mostrarInput('subgrupo')" disabled>
-              <i class="fa-solid fa-plus"></i> Nuevo
-            </button>
-          </div>
-          <div id="input-subgrupo" class="input-nuevo" style="display: none;">
-            <input type="text" id="nuevo-subgrupo" placeholder="Nombre del nuevo subgrupo">
-            <button type="button" onclick="agregarSubgrupo()">Agregar</button>
-          </div>
-        </div>
-
-        <!-- Requerimiento -->
-        <div class="form-group">
-          <label for="requerimiento">📝 Requerimiento:</label>
-          <div class="input-group">
-            <select id="select-requerimiento" name="requerimiento" disabled>
-              <option value="">Primero seleccione un subgrupo</option>
-            </select>
-            <button type="button" class="btn-nuevo" onclick="mostrarInput('requerimiento')" disabled>
-              <i class="fa-solid fa-plus"></i> Nuevo
-            </button>
-          </div>
-          <div id="input-requerimiento" class="input-nuevo" style="display: none;">
-            <input type="text" id="nuevo-requerimiento" placeholder="Nombre del nuevo requerimiento">
-            <select id="clasificacion-requerimiento">
-              <option value="Baja">Baja</option>
-              <option value="Media">Media</option>
-              <option value="Alta">Alta</option>
-            </select>
-            <textarea id="descripcion-requerimiento" placeholder="Descripción del requerimiento"></textarea>
-            <button type="button" onclick="agregarRequerimiento()">Agregar</button>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn-cancelar" onclick="cerrarModalRequerimiento()">Cancelar</button>
-          <button type="submit" class="btn-guardar" disabled>Guardar Requerimiento</button>
-        </div>
-      </form>
+  <div class="requerimientos-lista" id="requerimientos-lista">
+    <h3><i class="fa-solid fa-list"></i> Requerimientos Existentes</h3>
+    <div id="lista-requerimientos">
     </div>
   </div>
 
-  <script src="{% static 'JavaScript/Redirecciones.js' %}"></script>
-  <script src="{% static 'JavaScript/Requerimientos.js' %}"></script>
 
+
+  <script src="{% static 'JavaScript/Redirecciones.js' %}">
+  </script>
+  <script src="{% static 'JavaScript/CRUD/Requerimientos/Requerimientos_Agregar.js' %}"></script>
+  <script src="{% static 'JavaScript/CRUD/Requerimientos/Requerimientos_Actualizar.js' %}"></script>
+  <script src="{% static 'JavaScript/CRUD/Requerimientos/Requerimientos_Eliminar.js' %}"></script>
 </body>
 
 </html>
