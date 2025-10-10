@@ -4,8 +4,8 @@ Desarrollo de Pagina Web y Aplicacion Movil de Alertas para la Seguridad Ciudada
 
 GITHUB
 
-Pagina Web: 
-Aplicacion Movil:
+Pagina Web: https://github.com/aceb2/Seguridad-SB
+Aplicacion Movil: https://github.com/SeReveco/Seguridad-SB-App
 
 Resumen de Evidencias Individual:
 
