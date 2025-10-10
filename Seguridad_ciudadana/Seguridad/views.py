@@ -575,3 +575,216 @@ def api_requerimiento_detalle(request, requerimiento_id):
             return JsonResponse({'mensaje': 'Requerimiento eliminado correctamente'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+# ✅ VISTA PARA PÁGINA DE ADMINISTRACIÓN DE USUARIOS
+@login_required
+def admin_usuarios(request):
+    """Página principal de gestión de usuarios"""
+    if not request.user.is_authenticated or not request.user.es_administrador:
+        return redirect('login')
+    
+    # Obtener estadísticas de usuarios
+    total_usuarios = Usuario.objects.count()
+    total_administradores = Usuario.objects.filter(id_rol__nombre_rol='Administrador').count()
+    total_activos = Usuario.objects.filter(is_active=True).count()
+    
+    context = {
+        'total_usuarios': total_usuarios,
+        'total_administradores': total_administradores,
+        'total_activos': total_activos,
+    }
+    return render(request, 'CRUD/Admin/usuarios.html', context)
+
+# ✅ API PARA CREAR USUARIOS
+@csrf_exempt
+@login_required
+def api_usuarios(request):
+    """Manejar operaciones CRUD para usuarios"""
+    try:
+        if request.method == 'GET':
+            # Obtener lista de usuarios
+            usuarios = Usuario.objects.all().select_related('id_rol', 'id_turno')
+            data = []
+            for usuario in usuarios:
+                data.append({
+                    'id_usuario': usuario.id_usuario,
+                    'nombre_usuario': usuario.nombre_usuario,
+                    'apellido_pat_usuario': usuario.apellido_pat_usuario,
+                    'apellido_mat_usuario': usuario.apellido_mat_usuario,
+                    'rut_usuario': usuario.rut_usuario,
+                    'telefono_movil_usuario': usuario.telefono_movil_usuario,  # Cambiado a telefono_movil_usuario
+                    'correo_electronico_usuario': usuario.correo_electronico_usuario,
+                    'direccion_usuario': getattr(usuario, 'direccion_usuario', ''),  # Este campo no existe en tu modelo
+                    'estado_usuario': usuario.is_active,  # Cambiado a is_active
+                    'observaciones_usuario': getattr(usuario, 'observaciones_usuario', ''),  # Este campo no existe
+                    'rol_nombre': usuario.id_rol.nombre_rol if usuario.id_rol else '',
+                    'turno_nombre': usuario.id_turno.nombre_turno if usuario.id_turno else '',
+                    'fecha_creacion': usuario.fecha_creacion.strftime('%d/%m/%Y %H:%M') if usuario.fecha_creacion else ''
+                })
+            return JsonResponse(data, safe=False)
+        
+        elif request.method == 'POST':
+            # Crear nuevo usuario
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos según tu modelo
+            campos_requeridos = [
+                'nombre_usuario', 'apellido_pat_usuario', 'apellido_mat_usuario',
+                'rut_usuario', 'telefono_movil_usuario', 'correo_electronico_usuario',
+                'password_usuario', 'id_rol'
+            ]
+            
+            for campo in campos_requeridos:
+                if not data.get(campo):
+                    return JsonResponse({'error': f'El campo {campo} es requerido'}, status=400)
+            
+            # Verificar si el correo ya existe
+            if Usuario.objects.filter(correo_electronico_usuario=data['correo_electronico_usuario']).exists():
+                return JsonResponse({'error': 'El correo electrónico ya está registrado'}, status=400)
+            
+            # Verificar si el RUT ya existe
+            if Usuario.objects.filter(rut_usuario=data['rut_usuario']).exists():
+                return JsonResponse({'error': 'El RUT ya está registrado'}, status=400)
+            
+            try:
+                # Crear el usuario usando el manager personalizado
+                usuario = Usuario.objects.create_user(
+                    correo_electronico_usuario=data['correo_electronico_usuario'],
+                    password=data['password_usuario'],
+                    nombre_usuario=data['nombre_usuario'],
+                    apellido_pat_usuario=data['apellido_pat_usuario'],
+                    apellido_mat_usuario=data['apellido_mat_usuario'],
+                    rut_usuario=data['rut_usuario'],
+                    telefono_movil_usuario=data['telefono_movil_usuario'],  # Cambiado a telefono_movil_usuario
+                    id_rol_id=data['id_rol'],
+                    id_turno_id=data.get('id_turno'),
+                    is_active=data.get('estado_usuario', True)  # Cambiado a is_active
+                )
+                
+                return JsonResponse({
+                    'id_usuario': usuario.id_usuario,
+                    'nombre_completo': f"{usuario.nombre_usuario} {usuario.apellido_pat_usuario} {usuario.apellido_mat_usuario}",
+                    'correo_electronico_usuario': usuario.correo_electronico_usuario,
+                    'rut_usuario': usuario.rut_usuario,
+                    'mensaje': 'Usuario creado correctamente'
+                })
+                
+            except Exception as e:
+                return JsonResponse({'error': f'Error al crear usuario: {str(e)}'}, status=500)
+            
+    except Exception as e:
+        print(f"❌ Error en api_usuarios: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ✅ API PARA USUARIO ESPECÍFICO
+@csrf_exempt
+@login_required
+def api_usuario_detalle(request, usuario_id):
+    """Manejar operaciones CRUD para un usuario específico"""
+    try:
+        usuario = Usuario.objects.get(id_usuario=usuario_id)
+    except Usuario.DoesNotExist:
+        return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+    
+    if request.method == 'GET':
+        data = {
+            'id_usuario': usuario.id_usuario,
+            'nombre_usuario': usuario.nombre_usuario,
+            'apellido_pat_usuario': usuario.apellido_pat_usuario,
+            'apellido_mat_usuario': usuario.apellido_mat_usuario,
+            'rut_usuario': usuario.rut_usuario,
+            'telefono_movil_usuario': usuario.telefono_movil_usuario,  # Cambiado
+            'correo_electronico_usuario': usuario.correo_electronico_usuario,
+            'direccion_usuario': getattr(usuario, 'direccion_usuario', ''),  # No existe en tu modelo
+            'estado_usuario': usuario.is_active,  # Cambiado
+            'observaciones_usuario': getattr(usuario, 'observaciones_usuario', ''),  # No existe
+            'id_rol': usuario.id_rol_id,
+            'id_turno': usuario.id_turno_id if usuario.id_turno else None
+        }
+        return JsonResponse(data)
+    
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            
+            # Actualizar campos permitidos según tu modelo
+            campos_permitidos = [
+                'nombre_usuario', 'apellido_pat_usuario', 'apellido_mat_usuario',
+                'telefono_movil_usuario', 'id_rol', 'id_turno'
+            ]
+            
+            for campo in campos_permitidos:
+                if campo in data:
+                    setattr(usuario, campo, data[campo])
+            
+            # Manejar estado (is_active en tu modelo)
+            if 'estado_usuario' in data:
+                usuario.is_active = data['estado_usuario']
+            
+            # Manejar cambio de contraseña si se proporciona
+            if 'password_usuario' in data and data['password_usuario']:
+                usuario.set_password(data['password_usuario'])
+            
+            usuario.save()
+            
+            return JsonResponse({
+                'mensaje': 'Usuario actualizado correctamente',
+                'id_usuario': usuario.id_usuario
+            })
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    elif request.method == 'DELETE':
+        try:
+            # Verificar si el usuario tiene denuncias asociadas
+            denuncias_asociadas = Denuncia.objects.filter(
+                models.Q(id_operador1=usuario_id) | 
+                models.Q(id_operador2=usuario_id) | 
+                models.Q(id_solicitante=usuario_id)
+            )
+            if denuncias_asociadas.exists():
+                return JsonResponse({
+                    'error': 'No se puede eliminar el usuario porque tiene denuncias asociadas'
+                }, status=400)
+            
+            usuario.delete()
+            return JsonResponse({'mensaje': 'Usuario eliminado correctamente'})
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+# ✅ API PARA BUSCAR USUARIOS
+@csrf_exempt
+@login_required
+def api_usuarios_buscar(request):
+    """Buscar usuarios por nombre, email o RUT"""
+    try:
+        query = request.GET.get('q', '')
+        
+        if not query:
+            return JsonResponse([], safe=False)
+        
+        usuarios = Usuario.objects.filter(
+            models.Q(nombre_usuario__icontains=query) |
+            models.Q(apellido_pat_usuario__icontains=query) |
+            models.Q(apellido_mat_usuario__icontains=query) |
+            models.Q(correo_electronico_usuario__icontains=query) |
+            models.Q(rut_usuario__icontains=query)
+        ).select_related('id_rol')[:10]  # Limitar a 10 resultados
+        
+        data = []
+        for usuario in usuarios:
+            data.append({
+                'id_usuario': usuario.id_usuario,
+                'nombre_completo': f"{usuario.nombre_usuario} {usuario.apellido_pat_usuario} {usuario.apellido_mat_usuario}",
+                'rut_usuario': usuario.rut_usuario,
+                'correo_electronico_usuario': usuario.correo_electronico_usuario,
+                'rol_nombre': usuario.id_rol.nombre_rol if usuario.id_rol else '',
+                'estado_usuario': usuario.is_active  # Cambiado
+            })
+        
+        return JsonResponse(data, safe=False)
+        
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

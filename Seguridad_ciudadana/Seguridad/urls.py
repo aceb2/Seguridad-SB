@@ -8,6 +8,7 @@ urlpatterns = [
     path('Registro/', views.registrar, name='registro'),
     path('Admin/', views.admin_dashboard, name='Admin'),
     path('Admin/requerimientos/', views.admin_requerimientos, name='admin_requerimientos'),
+    path('Admin/usuarios/', views.admin_usuarios, name='admin_usuarios'),
     
     # APIs para requerimientos
     path('api/requerimientos/', views.api_requerimientos, name='api_requerimientos'),
@@ -21,4 +22,9 @@ urlpatterns = [
     path('api/grupos/<int:grupo_id>/', views.api_grupo_detalle, name='api_grupo_detalle'),
     path('api/subgrupos/', views.api_subgrupos, name='api_subgrupos'),
     path('api/subgrupos/<int:subgrupo_id>/', views.api_subgrupo_detalle, name='api_subgrupo_detalle'),
+    
+    # APIs para usuarios
+    path('api/usuarios/', views.api_usuarios, name='api_usuarios'),
+    path('api/usuarios/buscar/', views.api_usuarios_buscar, name='api_usuarios_buscar'),
+    path('api/usuarios/<int:usuario_id>/', views.api_usuario_detalle, name='api_usuario_detalle'),
 ]

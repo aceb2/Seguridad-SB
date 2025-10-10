@@ -67,11 +67,14 @@ WSGI_APPLICATION = 'Seguridad_ciudadana.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Seguridad_SB',
-        'USER': 'postgres',
-        'PASSWORD': '123456',
-        'HOST': 'localhost',  
-        'PORT': '5432',
+        'NAME': 'postgres', 
+        'USER': 'postgres', 
+        'PASSWORD': 'seguridad123456', 
+        'HOST': 'db.awmshunqvwnwpaicyrkf.supabase.co',  
+        'PORT': '5432',  
+        'OPTIONS': {
+            'sslmode': 'require', 
+        },
     }
 }
 
