@@ -1,2 +1,13 @@
 # Seguridad-SB
-Desarrollo de página web y app mobile (analizando), para cubrir las necesidades de la seguridad ciudadana en la comuna de San Bernardo. 
+
+Desarrollo de Pagina Web y Aplicacion Movil de Alertas para la Seguridad Ciudadana de la Comuna de San Bernardo
+
+GITHUB
+
+Pagina Web: 
+Aplicacion Movil:
+
+Resumen de Evidencias:
+
+Fase 1:
+° 
