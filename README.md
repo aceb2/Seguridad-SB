@@ -24,6 +24,6 @@ Fase 1:
 - 1.4_APT122_FormativaFase1.docx
 - 1.5_GuiaEstudiante_Fase 1_Definicion Proyecto APT (Español)
 
-Fase 2:
+Fase 2: **En Proceso**
 # Seguridad-SB
 Desarrollo de página web y app mobile (analizando), para cubrir las necesidades de la seguridad ciudadana en la comuna de San Bernardo. 
