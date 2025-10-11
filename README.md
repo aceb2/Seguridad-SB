@@ -22,5 +22,7 @@ Resumen de Evidencias Grupal:
 Fase 1:
 - 1.4_APT122_FormativaFase1.docx
 - 1.5_GuiaEstudiante_Fase 1_Definicion Proyecto APT (Español)
+- Presentacion Proyecto
 
 Fase 2:
+
