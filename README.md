@@ -25,7 +25,7 @@ Fase 1:
 - 1.5_GuiaEstudiante_Fase 1_Definicion Proyecto APT (Español)
 
   Fase 2:
-  - # En proceoso
+  - **En Proceso**
 
 Fase 2:
 # Seguridad-SB
