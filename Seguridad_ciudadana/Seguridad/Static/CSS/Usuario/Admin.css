@@ -1,0 +1,46 @@
+/* Fondo con marca de agua */
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: rgb(229, 242, 236);
+    position: relative;
+    font-family: Arial, sans-serif;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;  /* Tamaño fijo */
+    height: 400px;
+    background-image: url('../../Img/san_bernardo_fondo.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.1;  /* Más transparente */
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Contenido principal */
+.admin-content {
+    padding: 40px 20px;
+    text-align: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    margin: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.admin-content h1 {
+    color: #2c5530;
+    margin-bottom: 20px;
+}
+
+.admin-content p {
+    color: #666;
+    font-size: 18px;
+}

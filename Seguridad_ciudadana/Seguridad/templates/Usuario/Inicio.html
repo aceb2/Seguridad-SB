@@ -7,6 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="{% static 'CSS/Usuario/Inicio_sesion.css' %}">
+  <link rel="icon" type="image/png" href="{% static 'Img/logo_san_bernardo_2.png' %}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -14,7 +15,6 @@
   <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
   <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
   <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
-  <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
   <title>Inicio de Sesión</title>
 </head>
 
@@ -65,7 +65,7 @@
   <!-- Script para SweetAlert -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      
+
       {% if alert_type %}
       const alertType = '{{ alert_type|escapejs }}';
       const alertTitle = '{{ alert_title|escapejs }}';
@@ -83,13 +83,13 @@
         timerProgressBar: true
       });
       {% endif %}
-      
+
       if (loginForm) {
         loginForm.addEventListener('submit', function (e) {
           const email = document.getElementById('email-input').value;
           const password = document.getElementById('password-input').value;
 
-          
+
           if (!email || !password) {
             e.preventDefault();
             Swal.fire({
@@ -104,7 +104,7 @@
             return;
           }
 
-          
+
           submitBtn.innerHTML = '⏳ Validando credenciales...';
           submitBtn.disabled = true;
         });

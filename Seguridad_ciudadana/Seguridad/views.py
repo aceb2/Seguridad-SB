@@ -4,7 +4,7 @@ from django.contrib.auth import login, authenticate, logout # type: ignore
 from django.contrib.auth.decorators import login_required # type: ignore
 from django.http import JsonResponse # type: ignore
 from django.utils import timezone # type: ignore
-from .models import FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, Usuario, Denuncia, Vehiculos, AsignacionesVehiculos, Roles, Turnos
+from .models import FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, TiposVehiculos, Usuario, Denuncia, Vehiculos, AsignacionesVehiculos, Roles, Turnos
 from django.views.decorators.csrf import csrf_exempt # type: ignore
 import json
 
@@ -788,3 +788,251 @@ def api_usuarios_buscar(request):
         
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+    
+# ========== APIs ESPECÍFICAS PARA IONIC ==========
+
+@csrf_exempt
+def api_login_ionic(request):
+    """API de login específica para Ionic (sin sesiones)"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            password = data.get('password')
+            
+            if not email or not password:
+                return JsonResponse({'success': False, 'error': 'Email y contraseña requeridos'}, status=400)
+            
+            # Autenticar usuario
+            user = authenticate(request, username=email, password=password)
+            
+            if user is not None and user.is_active:
+                # Login exitoso - devolver datos del usuario
+                user_data = {
+                    'id_usuario': user.id_usuario,
+                    'nombre_usuario': user.nombre_usuario,
+                    'apellido_pat_usuario': user.apellido_pat_usuario,
+                    'apellido_mat_usuario': user.apellido_mat_usuario,
+                    'correo_electronico_usuario': user.correo_electronico_usuario,
+                    'telefono_movil_usuario': user.telefono_movil_usuario,
+                    'id_rol': user.id_rol.id_rol,
+                    'nombre_rol': user.id_rol.nombre_rol,
+                    'es_administrador': user.es_administrador,
+                    'es_operador': user.es_operador,
+                    'es_conductor': user.es_conductor,
+                    'es_ciudadano': user.es_ciudadano,
+                    'is_active': user.is_active
+                }
+                
+                return JsonResponse({
+                    'success': True, 
+                    'user': user_data,
+                    'message': 'Login exitoso'
+                })
+            else:
+                return JsonResponse({
+                    'success': False, 
+                    'error': 'Credenciales inválidas o usuario inactivo'
+                }, status=401)
+                
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+@csrf_exempt
+def api_vehiculos(request):
+    """API para gestión de vehículos"""
+    try:
+        if request.method == 'GET':
+            vehiculos = Vehiculos.objects.all().select_related('id_tipo_vehiculo')
+            data = []
+            for vehiculo in vehiculos:
+                data.append({
+                    'id_vehiculo': vehiculo.id_vehiculo,
+                    'patente_vehiculo': vehiculo.patente_vehiculo,
+                    'marca_vehiculo': vehiculo.marca_vehiculo,
+                    'modelo_vehiculo': vehiculo.modelo_vehiculo,
+                    'codigo_vehiculo': vehiculo.codigo_vehiculo,
+                    'id_tipo_vehiculo': vehiculo.id_tipo_vehiculo.id_tipo_vehiculo,
+                    'nombre_tipo_vehiculo': vehiculo.id_tipo_vehiculo.nombre_tipo_vehiculo,
+                    'estado_vehiculo': vehiculo.estado_vehiculo,
+                    'fecha_creacion': vehiculo.fecha_creacion.isoformat() if vehiculo.fecha_creacion else None
+                })
+            return JsonResponse({'success': True, 'vehiculos': data})
+        
+        elif request.method == 'POST':
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos
+            campos_requeridos = ['patente_vehiculo', 'marca_vehiculo', 'modelo_vehiculo', 'codigo_vehiculo', 'id_tipo_vehiculo']
+            for campo in campos_requeridos:
+                if not data.get(campo):
+                    return JsonResponse({'success': False, 'error': f'Campo {campo} es requerido'}, status=400)
+            
+            # Verificar patente única
+            if Vehiculos.objects.filter(patente_vehiculo=data['patente_vehiculo']).exists():
+                return JsonResponse({'success': False, 'error': 'La patente ya existe'}, status=400)
+            
+            # Crear vehículo
+            vehiculo = Vehiculos.objects.create(
+                patente_vehiculo=data['patente_vehiculo'],
+                marca_vehiculo=data['marca_vehiculo'],
+                modelo_vehiculo=data['modelo_vehiculo'],
+                codigo_vehiculo=data['codigo_vehiculo'],
+                id_tipo_vehiculo_id=data['id_tipo_vehiculo'],
+                estado_vehiculo=data.get('estado_vehiculo', 'Disponible')
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'vehiculo': {
+                    'id_vehiculo': vehiculo.id_vehiculo,
+                    'patente_vehiculo': vehiculo.patente_vehiculo,
+                    'marca_vehiculo': vehiculo.marca_vehiculo,
+                    'modelo_vehiculo': vehiculo.modelo_vehiculo,
+                    'codigo_vehiculo': vehiculo.codigo_vehiculo,
+                    'estado_vehiculo': vehiculo.estado_vehiculo
+                },
+                'message': 'Vehículo creado exitosamente'
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_tipos_vehiculos(request):
+    """API para obtener tipos de vehículos"""
+    try:
+        tipos = TiposVehiculos.objects.all()
+        data = [{
+            'id_tipo_vehiculo': tipo.id_tipo_vehiculo,
+            'nombre_tipo_vehiculo': tipo.nombre_tipo_vehiculo
+        } for tipo in tipos]
+        
+        return JsonResponse({'success': True, 'tipos_vehiculos': data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_denuncias_ionic(request):
+    """API para gestión de denuncias desde Ionic"""
+    try:
+        if request.method == 'GET':
+            denuncias = Denuncia.objects.all().select_related(
+                'id_operador1', 'id_solicitante', 'id_requerimiento', 'id_turno'
+            )
+            data = []
+            for denuncia in denuncias:
+                data.append({
+                    'id_denuncia': denuncia.id_denuncia,
+                    'hora_denuncia': denuncia.hora_denuncia.isoformat(),
+                    'fecha_denuncia': denuncia.fecha_denuncia.isoformat(),
+                    'id_solicitante': denuncia.id_solicitante.id_usuario,
+                    'nombre_solicitante': denuncia.id_solicitante.get_full_name(),
+                    'direccion': denuncia.direccion,
+                    'detalle_denuncia': denuncia.detalle_denuncia,
+                    'estado_denuncia': denuncia.estado_denuncia,
+                    'id_requerimiento': denuncia.id_requerimiento.id_requerimiento,
+                    'nombre_requerimiento': denuncia.id_requerimiento.nombre_requerimiento,
+                    'visibilidad_camaras_denuncia': denuncia.visibilidad_camaras_denuncia,
+                    'labor_realizada_denuncia': denuncia.labor_realizada_denuncia,
+                    'fecha_creacion': denuncia.fecha_creacion.isoformat() if denuncia.fecha_creacion else None
+                })
+            return JsonResponse({'success': True, 'denuncias': data})
+        
+        elif request.method == 'POST':
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos
+            campos_requeridos = [
+                'hora_denuncia', 'fecha_denuncia', 'id_solicitante', 'direccion',
+                'id_requerimiento', 'detalle_denuncia', 'id_turno'
+            ]
+            for campo in campos_requeridos:
+                if not data.get(campo):
+                    return JsonResponse({'success': False, 'error': f'Campo {campo} es requerido'}, status=400)
+            
+            # Crear denuncia
+            denuncia = Denuncia.objects.create(
+                hora_denuncia=data['hora_denuncia'],
+                fecha_denuncia=data['fecha_denuncia'],
+                id_solicitante_id=data['id_solicitante'],
+                direccion=data['direccion'],
+                id_requerimiento_id=data['id_requerimiento'],
+                detalle_denuncia=data['detalle_denuncia'],
+                id_turno_id=data['id_turno'],
+                visibilidad_camaras_denuncia=data.get('visibilidad_camaras_denuncia', False),
+                labor_realizada_denuncia=data.get('labor_realizada_denuncia', ''),
+                estado_denuncia=data.get('estado_denuncia', 'Recibido'),
+                id_operador1_id=data.get('id_operador1')  # Opcional, puede ser el usuario actual
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'denuncia': {
+                    'id_denuncia': denuncia.id_denuncia,
+                    'estado_denuncia': denuncia.estado_denuncia,
+                    'fecha_creacion': denuncia.fecha_creacion.isoformat()
+                },
+                'message': 'Denuncia creada exitosamente'
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_dashboard_stats(request):
+    """API para obtener estadísticas del dashboard"""
+    try:
+        total_usuarios = Usuario.objects.count()
+        total_denuncias = Denuncia.objects.count()
+        vehiculos_activos = Vehiculos.objects.filter(estado_vehiculo='Disponible').count()
+        denuncias_pendientes = Denuncia.objects.filter(estado_denuncia='Recibido').count()
+        
+        return JsonResponse({
+            'success': True,
+            'stats': {
+                'total_usuarios': total_usuarios,
+                'total_denuncias': total_denuncias,
+                'vehiculos_activos': vehiculos_activos,
+                'denuncias_pendientes': denuncias_pendientes
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+# ========== APIs PARA DATOS MAESTROS ==========
+
+@csrf_exempt
+def api_roles_ionic(request):
+    """API para obtener roles"""
+    try:
+        roles = Roles.objects.all()
+        data = [{
+            'id_rol': rol.id_rol,
+            'nombre_rol': rol.nombre_rol
+        } for rol in roles]
+        
+        return JsonResponse({'success': True, 'roles': data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_turnos_ionic(request):
+    """API para obtener turnos"""
+    try:
+        turnos = Turnos.objects.all()
+        data = []
+        for turno in turnos:
+            data.append({
+                'id_turno': turno.id_turno,
+                'nombre_turno': turno.nombre_turno,
+                'hora_inicio': turno.hora_inicio.strftime('%H:%M'),
+                'hora_fin': turno.hora_fin.strftime('%H:%M')
+            })
+        
+        return JsonResponse({'success': True, 'turnos': data})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
