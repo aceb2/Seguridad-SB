@@ -1,4 +1,4 @@
-// 📋 SISTEMA PARA LISTAR Y CARGAR USUARIOS
+// 📋 SISTEMA PARA LISTAR Y CARGAR USUARIOS (ACTUALIZADO)
 
 // ✅ INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', function() {
@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarEstadisticas();
 });
 
-// ✅ CARGAR USUARIOS DESDE LA API
+// ✅ CARGAR USUARIOS DESDE LA API (EXCLUYENDO CIUDADANOS)
 async function cargarUsuarios() {
     try {
         console.log('📥 Cargando lista de usuarios...');
@@ -29,7 +29,12 @@ async function cargarUsuarios() {
         const usuarios = await response.json();
         console.log('✅ Usuarios cargados:', usuarios);
         
-        mostrarUsuarios(usuarios);
+        // ✅ FILTRAR: Excluir usuarios con rol "Ciudadano"
+        const usuariosFiltrados = usuarios.filter(usuario => 
+            usuario.rol_nombre !== 'Ciudadano' && usuario.rol_nombre !== 'Ciudadano'
+        );
+        
+        mostrarUsuarios(usuariosFiltrados);
         
     } catch (error) {
         console.error('❌ Error cargando usuarios:', error);
@@ -45,7 +50,7 @@ async function cargarUsuarios() {
     }
 }
 
-// ✅ MOSTRAR USUARIOS EN LA LISTA
+// ✅ MOSTRAR USUARIOS EN LA LISTA (EXCLUYENDO CIUDADANOS)
 function mostrarUsuarios(usuarios) {
     const listaUsuarios = document.getElementById('lista-usuarios');
     
@@ -100,9 +105,6 @@ function mostrarUsuarios(usuarios) {
                 </div>
                 
                 <div class="usuario-acciones">
-                    <button class="btn-editar-usuario" onclick="editarUsuarioDesdeLista(${usuario.id_usuario})">
-                        <i class="fa-solid fa-edit"></i> Editar
-                    </button>
                     <button class="btn-eliminar-usuario-card" onclick="eliminarUsuarioDesdeLista(${usuario.id_usuario})" ${usuario.id_usuario === 1 ? 'disabled' : ''}>
                         <i class="fa-solid fa-trash"></i> Eliminar
                     </button>
@@ -114,7 +116,7 @@ function mostrarUsuarios(usuarios) {
     listaUsuarios.innerHTML = usuariosHTML;
 }
 
-// ✅ CARGAR ESTADÍSTICAS
+// ✅ CARGAR ESTADÍSTICAS (ACTUALIZADO)
 async function cargarEstadisticas() {
     try {
         const response = await fetch('/api/usuarios/');
@@ -125,20 +127,26 @@ async function cargarEstadisticas() {
         
         const usuarios = await response.json();
         
-        // Calcular estadísticas
+        // ✅ CALCULAR NUEVAS ESTADÍSTICAS
         const totalUsuarios = usuarios.length;
+        const totalCiudadanos = usuarios.filter(u => u.rol_nombre === 'Ciudadano').length;
+        const totalTrabajadores = usuarios.filter(u => 
+            u.rol_nombre !== 'Ciudadano' && u.rol_nombre !== 'Ciudadano'
+        ).length;
         const totalAdministradores = usuarios.filter(u => u.rol_nombre === 'Administrador').length;
         const totalActivos = usuarios.filter(u => u.estado_usuario).length;
         
         // Actualizar estadísticas
-        document.getElementById('total-usuarios').textContent = totalUsuarios;
+        document.getElementById('total-ciudadanos').textContent = totalCiudadanos;
+        document.getElementById('total-trabajadores').textContent = totalTrabajadores;
         document.getElementById('total-administradores').textContent = totalAdministradores;
         document.getElementById('total-activos').textContent = totalActivos;
         
     } catch (error) {
         console.error('❌ Error cargando estadísticas:', error);
         // Mostrar ceros en caso de error
-        document.getElementById('total-usuarios').textContent = '0';
+        document.getElementById('total-ciudadanos').textContent = '0';
+        document.getElementById('total-trabajadores').textContent = '0';
         document.getElementById('total-administradores').textContent = '0';
         document.getElementById('total-activos').textContent = '0';
     }
@@ -150,7 +158,8 @@ function getRolClass(rolNombre) {
         'Administrador': 'rol-administrador',
         'Operador': 'rol-operador',
         'Conductor': 'rol-conductor',
-        'Inspector': 'rol-inspector'
+        'Inspector': 'rol-inspector',
+        'Ciudadano': 'rol-ciudadano'
     };
     return roles[rolNombre] || 'rol-usuario';
 }
@@ -159,13 +168,11 @@ function getRolClass(rolNombre) {
 function editarUsuarioDesdeLista(usuarioId) {
     console.log('✏️ Editando usuario desde lista:', usuarioId);
     abrirModalActualizarUsuario();
-    // Aquí puedes agregar lógica para pre-cargar el usuario en el modal de actualización
 }
 
 function eliminarUsuarioDesdeLista(usuarioId) {
     console.log('🗑️ Eliminando usuario desde lista:', usuarioId);
     abrirModalEliminarUsuario();
-    // Aquí puedes agregar lógica para pre-seleccionar el usuario en el modal de eliminación
 }
 
 // ✅ RECARGAR LISTA DESDE OTROS MÓDULOS

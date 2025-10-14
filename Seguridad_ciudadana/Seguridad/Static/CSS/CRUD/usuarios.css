@@ -840,3 +840,148 @@
 .stat-card {
     animation: fadeIn 0.5s ease-out;
 }
+
+/* Agrega esto a tu CSS existente */
+.rol-ciudadano {
+    background: #6c757d;
+    color: white;
+}
+
+/* Ajusta el grid para 4 estadísticas */
+.usuarios-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* Para móviles */
+@media (max-width: 768px) {
+    .usuarios-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .usuarios-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 🗑️ ESTILOS ESPECÍFICOS PARA ELIMINAR USUARIOS */
+
+/* Estados de búsqueda */
+.sin-resultados,
+.error-busqueda {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+}
+
+.sin-resultados i,
+.error-busqueda i {
+    font-size: 2em;
+    margin-bottom: 10px;
+    display: block;
+    color: #6c757d;
+}
+
+.error-busqueda i {
+    color: #dc3545;
+}
+
+/* Información adicional en los items de búsqueda */
+.usuario-rut-search {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 2px;
+}
+
+/* SweetAlert personalizado para eliminación */
+.swal2-popup-eliminar .swal2-html-container {
+    text-align: left;
+}
+
+.swal2-popup-eliminar .text-danger {
+    color: #dc3545 !important;
+    font-weight: 600;
+}
+
+/* Estados de los badges en eliminación */
+.rol-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.estado-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* Responsive para el modal de eliminación */
+@media (max-width: 768px) {
+    .usuario-info-search {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .advertencia-eliminacion {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .advertencia-eliminacion i {
+        margin-bottom: 10px;
+    }
+}
+
+/* Animación para la advertencia */
+.advertencia-eliminacion {
+    animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* Mejora visual para los botones de confirmación */
+.btn-eliminar-confirmar:not(:disabled) {
+    animation: pulseDelete 1.5s infinite;
+}
+
+@keyframes pulseDelete {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Estilo para cuando el botón está deshabilitado */
+.btn-eliminar-confirmar:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    animation: none;
+}

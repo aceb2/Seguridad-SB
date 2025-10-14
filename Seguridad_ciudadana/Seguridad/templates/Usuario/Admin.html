@@ -63,13 +63,29 @@
         <p>Selecciona una opción del menú para comenzar.</p>
     </div>
 
-    <a href="{% url 'admin_requerimientos' %}" class="dropdown-item">
-        <i class="fa-solid fa-list-check"></i> Requerimientos
-    </a>
+    <!-- Contenedor para los botones especiales -->
+    <div class="admin-buttons-grid">
+        <div class="admin-btn-container">
+            <a href="{% url 'admin_requerimientos' %}" class="admin-btn">
+                <i class="fa-solid fa-list-check"></i>
+                <span>Requerimientos</span>
+            </a>
+        </div>
 
-    <a href="{% url 'admin_usuarios' %}" class="dropdown-item">
-        <i class="fa-solid fa-list-check"></i> Usuarios
-    </a>
+        <div class="admin-btn-container">
+            <a href="{% url 'admin_usuarios' %}" class="admin-btn">
+                <i class="fa-solid fa-users"></i>
+                <span>Usuarios</span>
+            </a>
+        </div>
+
+        <div class="admin-btn-container">
+            <a href="{% url 'admin_usuarios' %}" class="admin-btn">
+                <i class="fa-solid fa-car-side"></i>
+                <span>Vehiculos</span>
+            </a>
+        </div>
+    </div>
 
     <script>
         console.log("Ruta static:", "{% static 'Img/san_bernardo_fondo.png' %}");

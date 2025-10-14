@@ -612,12 +612,12 @@ def api_usuarios(request):
                     'apellido_pat_usuario': usuario.apellido_pat_usuario,
                     'apellido_mat_usuario': usuario.apellido_mat_usuario,
                     'rut_usuario': usuario.rut_usuario,
-                    'telefono_movil_usuario': usuario.telefono_movil_usuario,  # Cambiado a telefono_movil_usuario
+                    'telefono_movil_usuario': usuario.telefono_movil_usuario,
                     'correo_electronico_usuario': usuario.correo_electronico_usuario,
-                    'direccion_usuario': getattr(usuario, 'direccion_usuario', ''),  # Este campo no existe en tu modelo
-                    'estado_usuario': usuario.is_active,  # Cambiado a is_active
-                    'observaciones_usuario': getattr(usuario, 'observaciones_usuario', ''),  # Este campo no existe
+                    'estado_usuario': usuario.is_active,  # ✅ Esto está correcto
+                    'id_rol': usuario.id_rol_id,
                     'rol_nombre': usuario.id_rol.nombre_rol if usuario.id_rol else '',
+                    'id_turno': usuario.id_turno_id if usuario.id_turno else None,
                     'turno_nombre': usuario.id_turno.nombre_turno if usuario.id_turno else '',
                     'fecha_creacion': usuario.fecha_creacion.strftime('%d/%m/%Y %H:%M') if usuario.fecha_creacion else ''
                 })
@@ -676,7 +676,7 @@ def api_usuarios(request):
         print(f"❌ Error en api_usuarios: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA USUARIO ESPECÍFICO
+# ✅ API PARA USUARIO ESPECÍFICO (CORREGIDA)
 @csrf_exempt
 @login_required
 def api_usuario_detalle(request, usuario_id):
@@ -693,55 +693,84 @@ def api_usuario_detalle(request, usuario_id):
             'apellido_pat_usuario': usuario.apellido_pat_usuario,
             'apellido_mat_usuario': usuario.apellido_mat_usuario,
             'rut_usuario': usuario.rut_usuario,
-            'telefono_movil_usuario': usuario.telefono_movil_usuario,  # Cambiado
+            'telefono_movil_usuario': usuario.telefono_movil_usuario,
             'correo_electronico_usuario': usuario.correo_electronico_usuario,
-            'direccion_usuario': getattr(usuario, 'direccion_usuario', ''),  # No existe en tu modelo
-            'estado_usuario': usuario.is_active,  # Cambiado
-            'observaciones_usuario': getattr(usuario, 'observaciones_usuario', ''),  # No existe
-            'id_rol': usuario.id_rol_id,
-            'id_turno': usuario.id_turno_id if usuario.id_turno else None
+            'estado_usuario': usuario.is_active,
+            'id_rol': usuario.id_rol_id,  # Cambiado para enviar solo el ID
+            'id_turno': usuario.id_turno_id if usuario.id_turno else None  # Cambiado para enviar solo el ID
         }
         return JsonResponse(data)
     
     elif request.method == 'PUT':
         try:
             data = json.loads(request.body)
+            print(f"📥 Datos recibidos para actualizar usuario {usuario_id}: {data}")
             
             # Actualizar campos permitidos según tu modelo
             campos_permitidos = [
                 'nombre_usuario', 'apellido_pat_usuario', 'apellido_mat_usuario',
-                'telefono_movil_usuario', 'id_rol', 'id_turno'
+                'telefono_movil_usuario', 'correo_electronico_usuario'
             ]
             
             for campo in campos_permitidos:
                 if campo in data:
                     setattr(usuario, campo, data[campo])
             
-            # Manejar estado (is_active en tu modelo)
+            # ✅ CORREGIDO: Manejar estado (el campo se llama is_active en el modelo)
             if 'estado_usuario' in data:
-                usuario.is_active = data['estado_usuario']
+                usuario.is_active = bool(data['estado_usuario'])
+                print(f"✅ Estado actualizado a: {'Activo' if usuario.is_active else 'Inactivo'}")
+            
+            # Manejar rol - debe ser una instancia de Roles
+            if 'id_rol' in data:
+                try:
+                    rol = Roles.objects.get(id_rol=data['id_rol'])
+                    usuario.id_rol = rol
+                    print(f"✅ Rol actualizado a: {rol.nombre_rol}")
+                except Roles.DoesNotExist:
+                    return JsonResponse({'error': 'El rol especificado no existe'}, status=400)
+            
+            # Manejar turno - debe ser una instancia de Turnos o None
+            if 'id_turno' in data:
+                if data['id_turno']:
+                    try:
+                        turno = Turnos.objects.get(id_turno=data['id_turno'])
+                        usuario.id_turno = turno
+                        print(f"✅ Turno actualizado a: {turno.nombre_turno}")
+                    except Turnos.DoesNotExist:
+                        return JsonResponse({'error': 'El turno especificado no existe'}, status=400)
+                else:
+                    usuario.id_turno = None
+                    print("✅ Turno eliminado (seteado a None)")
             
             # Manejar cambio de contraseña si se proporciona
             if 'password_usuario' in data and data['password_usuario']:
                 usuario.set_password(data['password_usuario'])
+                print("✅ Contraseña actualizada")
             
             usuario.save()
+            print(f"✅ Usuario {usuario_id} actualizado correctamente")
             
             return JsonResponse({
                 'mensaje': 'Usuario actualizado correctamente',
-                'id_usuario': usuario.id_usuario
+                'id_usuario': usuario.id_usuario,
+                'nombre_completo': f"{usuario.nombre_usuario} {usuario.apellido_pat_usuario}",
+                'correo_electronico_usuario': usuario.correo_electronico_usuario,
+                'estado_actual': 'Activo' if usuario.is_active else 'Inactivo'
             })
             
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            print(f"❌ Error actualizando usuario {usuario_id}: {str(e)}")
+            return JsonResponse({'error': f'Error al actualizar usuario: {str(e)}'}, status=500)
     
     elif request.method == 'DELETE':
         try:
             # Verificar si el usuario tiene denuncias asociadas
+            from django.db.models import Q
             denuncias_asociadas = Denuncia.objects.filter(
-                models.Q(id_operador1=usuario_id) | 
-                models.Q(id_operador2=usuario_id) | 
-                models.Q(id_solicitante=usuario_id)
+                Q(id_operador1=usuario_id) | 
+                Q(id_operador2=usuario_id) | 
+                Q(id_solicitante=usuario_id)
             )
             if denuncias_asociadas.exists():
                 return JsonResponse({

@@ -83,17 +83,17 @@ function resetearFormularioAgregar() {
     if (matchText) matchText.style.color = '#6c757d';
 }
 
-// ✅ CARGAR DATOS INICIALES PARA AGREGAR
+// ✅ CARGAR DATOS INICIALES PARA AGREGAR (ACTUALIZADO)
 async function cargarDatosInicialesAgregar() {
     try {
         console.log('📥 Cargando datos para formulario de agregar usuario...');
         
-        // Roles permitidos para crear
+        // ✅ ACTUALIZADO: Roles permitidos para crear (sin Ciudadano)
         rolesDisponibles = [
             { id: 1, nombre: 'Administrador' },
             { id: 2, nombre: 'Operador' },
-            { id: 3, nombre: 'Conductor' },
-            { id: 4, nombre: 'Inspector' }
+            { id: 4, nombre: 'Conductor' },
+            { id: 5, nombre: 'Inspector' }
         ];
         
         console.log('✅ Datos para agregar usuario cargados correctamente');
@@ -367,7 +367,7 @@ function validarFormularioAgregarUsuario() {
     return valido;
 }
 
-// ✅ FILTRAR TURNOS SEGÚN ROL
+// ✅ FILTRAR TURNOS SEGÚN ROL (ACTUALIZADO SIN CIUDADANO)
 function filtrarTurnosPorRol() {
     const rolSelect = document.getElementById('rol-usuario');
     const turnoSelect = document.getElementById('turno-usuario');
@@ -383,8 +383,8 @@ function filtrarTurnosPorRol() {
         turnoSelect.options[i].disabled = false;
     }
     
-    // Si es Inspector (rol 4), mostrar solo turnos de inspectores
-    if (rolSeleccionado === 4) {
+    // ✅ ACTUALIZADO: Si es Inspector (rol 5), mostrar solo turnos de inspectores
+    if (rolSeleccionado === 5) {
         for (let i = 0; i < turnoSelect.options.length; i++) {
             const option = turnoSelect.options[i];
             const value = parseInt(option.value);
@@ -399,7 +399,7 @@ function filtrarTurnosPorRol() {
             turnoSelect.value = '';
         }
     }
-    // Para otros roles, mostrar solo turnos generales
+    // ✅ ACTUALIZADO: Para Conductores (rol 4) y otros roles (1, 2), mostrar solo turnos generales
     else if (rolSeleccionado) {
         for (let i = 0; i < turnoSelect.options.length; i++) {
             const option = turnoSelect.options[i];

@@ -29,29 +29,30 @@
 }
 
 body {
-    justify-content: center;
-    align-items: center;
+    margin: 0;
+    padding: 0;
     min-height: 100vh;
     background-color: rgb(229, 242, 236);
     position: relative;
+    font-family: Arial, sans-serif;
 }
 
 body::before {
     content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url('../Img/logo_san_bernardo.png');
-    background-size: cover;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;  /* Tamaño fijo */
+    height: 400px;
+    background-image: url('../../Img/san_bernardo_fondo.png');
+    background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
-    opacity: 0.3;
+    opacity: 0.1;  /* Más transparente */
     z-index: -1;
+    pointer-events: none;
 }
-
 .login-container {
     background: #fff;
     border-radius: 20px;
