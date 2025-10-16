@@ -69,7 +69,7 @@ function resetearModalEliminar() {
     usuarioSeleccionadoEliminar = null;
 }
 
-// ✅ BUSCAR USUARIOS PARA ELIMINAR
+// ✅ BUSCAR USUARIOS PARA ELIMINAR (VERSIÓN CON FILTRO EXPLÍCITO)
 async function buscarUsuariosEliminar() {
     const query = document.getElementById('buscar-usuario-eliminar').value.trim();
     const listaUsuarios = document.getElementById('lista-usuarios-eliminar');
@@ -87,11 +87,17 @@ async function buscarUsuariosEliminar() {
         listaUsuarios.innerHTML = `
             <div class="loading-usuarios">
                 <i class="fa-solid fa-spinner"></i>
-                <p>Buscando usuarios...</p>
+                <p>Buscando usuarios eliminables...</p>
             </div>
         `;
 
-        const response = await fetch(`/api/usuarios/buscar/?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`/api/usuarios/buscar/?q=${encodeURIComponent(query)}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -99,20 +105,40 @@ async function buscarUsuariosEliminar() {
         
         const usuarios = await response.json();
         
+        // ✅ FILTRAR: Solo incluir roles permitidos para eliminar
+        const rolesPermitidos = ['Administrador', 'Operador', 'Conductor', 'Inspector'];
+        
+        const usuariosFiltrados = usuarios.filter(usuario => {
+            const rolNombre = obtenerRolUsuario(usuario);
+            const esEliminable = rolesPermitidos.includes(rolNombre);
+            
+            if (!esEliminable) {
+                console.log(`🚫 Filtrando usuario no eliminable (${rolNombre}): ${usuario.nombre_completo}`);
+            }
+            
+            return esEliminable;
+        });
+        
         // Mostrar resultados
-        if (usuarios.length === 0) {
+        if (usuariosFiltrados.length === 0) {
             listaUsuarios.innerHTML = `
                 <div class="sin-resultados">
-                    <i class="fa-solid fa-search"></i>
-                    <p>No se encontraron usuarios</p>
+                    <i class="fa-solid fa-user-slash"></i>
+                    <p>No se encontraron usuarios eliminables</p>
+                    <small>Solo se muestran: Administradores, Operadores, Conductores e Inspectores</small>
+                    <small style="margin-top: 5px; color: #dc3545;">
+                        <i class="fa-solid fa-ban"></i> Los ciudadanos no pueden ser eliminados
+                    </small>
                 </div>
             `;
             return;
         }
         
-        const usuariosHTML = usuarios.map(usuario => {
+        const usuariosHTML = usuariosFiltrados.map(usuario => {
             const estadoClass = usuario.estado_usuario ? 'estado-activo' : 'estado-inactivo';
             const estadoTexto = usuario.estado_usuario ? 'Activo' : 'Inactivo';
+            
+            const rolNombre = obtenerRolUsuario(usuario);
             
             return `
                 <div class="usuario-item-search" onclick="seleccionarUsuarioEliminar(${usuario.id_usuario}, this)">
@@ -123,7 +149,7 @@ async function buscarUsuariosEliminar() {
                             <div class="usuario-rut-search">RUT: ${usuario.rut_usuario}</div>
                         </div>
                         <div>
-                            <span class="usuario-rol ${getRolClassEliminar(usuario.rol_nombre)}">${usuario.rol_nombre}</span>
+                            <span class="usuario-rol ${getRolClassEliminar(rolNombre)}">${rolNombre}</span>
                             <div class="usuario-estado ${estadoClass}">${estadoTexto}</div>
                         </div>
                     </div>
@@ -144,7 +170,7 @@ async function buscarUsuariosEliminar() {
     }
 }
 
-// ✅ SELECCIONAR USUARIO PARA ELIMINAR
+// ✅ SELECCIONAR USUARIO PARA ELIMINAR (MEJORADA)
 async function seleccionarUsuarioEliminar(usuarioId, elemento) {
     try {
         console.log(`👤 Seleccionando usuario para eliminar: ${usuarioId}`);
@@ -157,13 +183,43 @@ async function seleccionarUsuarioEliminar(usuarioId, elemento) {
         elemento.classList.add('selected');
         
         // Obtener información completa del usuario
-        const response = await fetch(`/api/usuarios/${usuarioId}/`);
+        const response = await fetch(`/api/usuarios/${usuarioId}/`, {
+            headers: {
+                'X-CSRFToken': getCSRFToken()
+            }
+        });
         
         if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`);
         }
         
         const usuario = await response.json();
+        console.log('🔍 Usuario seleccionado (detalle):', usuario);
+        
+        // ✅ USAR LA FUNCIÓN MEJORADA PARA OBTENER EL ROL
+        const rolNombre = obtenerRolUsuario(usuario);
+        console.log(`🔍 Rol determinado: ${rolNombre} (ID: ${usuario.id_rol})`);
+        
+        // ✅ VALIDACIÓN: Verificar que el usuario no sea ciudadano
+        if (rolNombre === 'Ciudadano') {
+            mostrarError('No se pueden eliminar usuarios con rol de Ciudadano. Solo se permiten eliminar trabajadores (Administrador, Operador, Conductor, Inspector).');
+            
+            // Deshabilitar botón de eliminar
+            document.getElementById('btn-confirmar-eliminar-usuario').disabled = true;
+            usuarioSeleccionadoEliminar = null;
+            return;
+        }
+        
+        // ✅ LISTA DE ROLES PERMITIDOS PARA ELIMINAR
+        const rolesPermitidos = ['Administrador', 'Operador', 'Conductor', 'Inspector'];
+        if (!rolesPermitidos.includes(rolNombre)) {
+            mostrarError(`No se pueden eliminar usuarios con rol de ${rolNombre}. Solo se permiten eliminar trabajadores.`);
+            
+            // Deshabilitar botón de eliminar
+            document.getElementById('btn-confirmar-eliminar-usuario').disabled = true;
+            usuarioSeleccionadoEliminar = null;
+            return;
+        }
         
         // Guardar usuario seleccionado
         usuarioSeleccionadoEliminar = usuario;
@@ -180,10 +236,18 @@ async function seleccionarUsuarioEliminar(usuarioId, elemento) {
     }
 }
 
-// ✅ MOSTRAR INFORMACIÓN DEL USUARIO A ELIMINAR
+// ✅ MOSTRAR INFORMACIÓN DEL USUARIO A ELIMINAR (MEJORADA)
 function mostrarInformacionUsuarioEliminar(usuario) {
     const infoUsuario = document.getElementById('info-usuario-eliminar');
     if (!infoUsuario) return;
+    
+    // ✅ USAR LA FUNCIÓN MEJORADA
+    const rolNombre = obtenerRolUsuario(usuario);
+    
+    console.log('🔍 Mostrando información del usuario:', {
+        usuario: usuario,
+        rol_determinado: rolNombre
+    });
     
     // Actualizar información
     document.getElementById('usuario-eliminar-nombre').textContent = 
@@ -193,8 +257,8 @@ function mostrarInformacionUsuarioEliminar(usuario) {
     
     // Actualizar rol
     const rolElement = document.getElementById('usuario-eliminar-rol');
-    rolElement.textContent = getNombreRol(usuario.id_rol);
-    rolElement.className = 'rol-badge ' + getRolClassEliminar(getNombreRol(usuario.id_rol));
+    rolElement.textContent = rolNombre;
+    rolElement.className = 'rol-badge ' + getRolClassEliminar(rolNombre);
     
     // Actualizar estado
     const estadoElement = document.getElementById('usuario-eliminar-estado');
@@ -312,6 +376,17 @@ async function ejecutarEliminacionUsuario(usuarioId, nombreUsuario) {
                 <p>No se puede eliminar el usuario <strong>${nombreUsuario}</strong> porque tiene denuncias asociadas en el sistema.</p>
                 <p class="text-muted">Para eliminar este usuario, primero debe reasignar o eliminar sus denuncias asociadas.</p>
             `;
+        } else if (error.message.includes('Ciudadano')) {
+            mensajeError = `
+                <p>No se puede eliminar el usuario <strong>${nombreUsuario}</strong> porque tiene rol de Ciudadano.</p>
+                <p class="text-muted">Solo se permiten eliminar trabajadores del sistema (Administrador, Operador, Conductor, Inspector).</p>
+            `;
+        } else if (error.message.includes('No se puede eliminar usuarios con rol de')) {
+            const rol = error.message.split('rol de ')[1];
+            mensajeError = `
+                <p>No se puede eliminar el usuario <strong>${nombreUsuario}</strong> porque tiene rol de <strong>${rol}</strong>.</p>
+                <p class="text-muted">Solo se permiten eliminar trabajadores del sistema (Administrador, Operador, Conductor, Inspector).</p>
+            `;
         }
         
         Swal.fire({
@@ -323,25 +398,59 @@ async function ejecutarEliminacionUsuario(usuarioId, nombreUsuario) {
     }
 }
 
-// ✅ FUNCIONES AUXILIARES PARA ELIMINAR
+// ✅ FUNCIÓN AUXILIAR PARA ELIMINAR - ACTUALIZADA
 function getRolClassEliminar(rolNombre) {
     const roles = {
         'Administrador': 'rol-administrador',
         'Operador': 'rol-operador',
         'Conductor': 'rol-conductor',
-        'Inspector': 'rol-inspector'
+        'Inspector': 'rol-inspector',
+        'Ciudadano': 'rol-ciudadano'
     };
     return roles[rolNombre] || 'rol-usuario';
 }
 
+// ✅ FUNCIÓN MEJORADA PARA OBTENER NOMBRE DEL ROL
 function getNombreRol(idRol) {
+    // Si idRol es undefined o null, retornar 'Usuario'
+    if (idRol === undefined || idRol === null) {
+        console.warn('⚠️ id_rol es undefined o null');
+        return 'Usuario';
+    }
+    
     const roles = {
         1: 'Administrador',
-        2: 'Operador',
-        3: 'Conductor',
-        4: 'Inspector'
+        2: 'Operador', 
+        3: 'Ciudadano',
+        4: 'Conductor',
+        5: 'Inspector'
     };
-    return roles[idRol] || 'Usuario';
+    
+    const rolNombre = roles[idRol];
+    
+    if (!rolNombre) {
+        console.warn(`⚠️ ID de rol no reconocido: ${idRol}`);
+        return 'Usuario';
+    }
+    
+    return rolNombre;
+}
+
+// ✅ FUNCIÓN PRINCIPAL PARA OBTENER ROL (USA DATOS DEL API PRIMERO)
+function obtenerRolUsuario(usuario) {
+    // Prioridad 1: Usar rol_nombre si viene del API
+    if (usuario.rol_nombre && usuario.rol_nombre !== '') {
+        return usuario.rol_nombre;
+    }
+    
+    // Prioridad 2: Convertir id_rol usando nuestra función
+    if (usuario.id_rol !== undefined && usuario.id_rol !== null) {
+        return getNombreRol(usuario.id_rol);
+    }
+    
+    // Fallback
+    console.warn('⚠️ No se pudo determinar el rol del usuario:', usuario);
+    return 'Usuario';
 }
 
 // ✅ FUNCIONES DE UTILIDAD (compartidas)
@@ -371,8 +480,21 @@ function mostrarError(mensaje) {
 }
 
 // ✅ ELIMINAR USUARIO DESDE LA LISTA
-function eliminarUsuarioDesdeLista(usuarioId) {
+function eliminarUsuarioDesdeLista(usuarioId, rolNombre) {
     console.log('🗑️ Eliminando usuario desde lista:', usuarioId);
+    
+    // ✅ VALIDACIÓN RÁPIDA: Verificar que no sea ciudadano
+    if (rolNombre === 'Ciudadano') {
+        mostrarError('No se pueden eliminar usuarios con rol de Ciudadano. Solo se permiten eliminar trabajadores.');
+        return;
+    }
+    
+    // ✅ LISTA DE ROLES PERMITIDOS PARA ELIMINAR
+    const rolesPermitidos = ['Administrador', 'Operador', 'Conductor', 'Inspector'];
+    if (!rolesPermitidos.includes(rolNombre)) {
+        mostrarError(`No se pueden eliminar usuarios con rol de ${rolNombre}. Solo se permiten eliminar trabajadores.`);
+        return;
+    }
     
     // Abrir modal de eliminación
     abrirModalEliminarUsuario();

@@ -7,6 +7,7 @@ from django.utils import timezone # type: ignore
 from .models import FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, TiposVehiculos, Usuario, Denuncia, Vehiculos, AsignacionesVehiculos, Roles, Turnos
 from django.views.decorators.csrf import csrf_exempt # type: ignore
 import json
+from django.db.models import Q # type: ignore
 
 # Vistas básicas de autenticación
 @login_required
@@ -676,7 +677,6 @@ def api_usuarios(request):
         print(f"❌ Error en api_usuarios: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA USUARIO ESPECÍFICO (CORREGIDA)
 @csrf_exempt
 @login_required
 def api_usuario_detalle(request, usuario_id):
@@ -696,8 +696,8 @@ def api_usuario_detalle(request, usuario_id):
             'telefono_movil_usuario': usuario.telefono_movil_usuario,
             'correo_electronico_usuario': usuario.correo_electronico_usuario,
             'estado_usuario': usuario.is_active,
-            'id_rol': usuario.id_rol_id,  # Cambiado para enviar solo el ID
-            'id_turno': usuario.id_turno_id if usuario.id_turno else None  # Cambiado para enviar solo el ID
+            'id_rol': usuario.id_rol_id,
+            'id_turno': usuario.id_turno_id if usuario.id_turno else None
         }
         return JsonResponse(data)
     
@@ -716,12 +716,10 @@ def api_usuario_detalle(request, usuario_id):
                 if campo in data:
                     setattr(usuario, campo, data[campo])
             
-            # ✅ CORREGIDO: Manejar estado (el campo se llama is_active en el modelo)
             if 'estado_usuario' in data:
                 usuario.is_active = bool(data['estado_usuario'])
                 print(f"✅ Estado actualizado a: {'Activo' if usuario.is_active else 'Inactivo'}")
             
-            # Manejar rol - debe ser una instancia de Roles
             if 'id_rol' in data:
                 try:
                     rol = Roles.objects.get(id_rol=data['id_rol'])
@@ -730,7 +728,6 @@ def api_usuario_detalle(request, usuario_id):
                 except Roles.DoesNotExist:
                     return JsonResponse({'error': 'El rol especificado no existe'}, status=400)
             
-            # Manejar turno - debe ser una instancia de Turnos o None
             if 'id_turno' in data:
                 if data['id_turno']:
                     try:
@@ -743,7 +740,6 @@ def api_usuario_detalle(request, usuario_id):
                     usuario.id_turno = None
                     print("✅ Turno eliminado (seteado a None)")
             
-            # Manejar cambio de contraseña si se proporciona
             if 'password_usuario' in data and data['password_usuario']:
                 usuario.set_password(data['password_usuario'])
                 print("✅ Contraseña actualizada")
@@ -765,6 +761,20 @@ def api_usuario_detalle(request, usuario_id):
     
     elif request.method == 'DELETE':
         try:
+            # ✅ VALIDACIÓN: Verificar que el usuario no sea ciudadano
+            if usuario.id_rol.nombre_rol == 'Ciudadano':
+                return JsonResponse({
+                    'error': 'No se puede eliminar usuarios con rol de Ciudadano'
+                }, status=400)
+            
+            # ✅ LISTA DE ROLES PERMITIDOS PARA ELIMINAR
+            roles_permitidos_eliminar = ['Administrador', 'Operador', 'Conductor', 'Inspector']
+            
+            if usuario.id_rol.nombre_rol not in roles_permitidos_eliminar:
+                return JsonResponse({
+                    'error': f'No se puede eliminar usuarios con rol de {usuario.id_rol.nombre_rol}'
+                }, status=400)
+            
             # Verificar si el usuario tiene denuncias asociadas
             from django.db.models import Q
             denuncias_asociadas = Denuncia.objects.filter(
@@ -783,7 +793,6 @@ def api_usuario_detalle(request, usuario_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA BUSCAR USUARIOS
 @csrf_exempt
 @login_required
 def api_usuarios_buscar(request):
@@ -795,11 +804,11 @@ def api_usuarios_buscar(request):
             return JsonResponse([], safe=False)
         
         usuarios = Usuario.objects.filter(
-            models.Q(nombre_usuario__icontains=query) |
-            models.Q(apellido_pat_usuario__icontains=query) |
-            models.Q(apellido_mat_usuario__icontains=query) |
-            models.Q(correo_electronico_usuario__icontains=query) |
-            models.Q(rut_usuario__icontains=query)
+            Q(nombre_usuario__icontains=query) |
+            Q(apellido_pat_usuario__icontains=query) |
+            Q(apellido_mat_usuario__icontains=query) |
+            Q(correo_electronico_usuario__icontains=query) |
+            Q(rut_usuario__icontains=query)
         ).select_related('id_rol')[:10]  # Limitar a 10 resultados
         
         data = []
@@ -810,12 +819,13 @@ def api_usuarios_buscar(request):
                 'rut_usuario': usuario.rut_usuario,
                 'correo_electronico_usuario': usuario.correo_electronico_usuario,
                 'rol_nombre': usuario.id_rol.nombre_rol if usuario.id_rol else '',
-                'estado_usuario': usuario.is_active  # Cambiado
+                'estado_usuario': usuario.is_active
             })
         
         return JsonResponse(data, safe=False)
         
     except Exception as e:
+        print(f"❌ Error en api_usuarios_buscar: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
     
     
