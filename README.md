@@ -2,8 +2,7 @@
 
 Desarrollo de Pagina Web y Aplicacion Movil de Alertas para la Seguridad Ciudadana de la Comuna de San Bernardo
 
-<img width="2048" height="1504" alt="image" src="https://github.com/user-attachments/assets/f57e6b2e-5659-4042-b8d3-9ffce07e8f91" />
-
+<img width="2500" height="628" alt="image" src="https://github.com/user-attachments/assets/6ebd3800-ab34-464c-b35e-6af43e2cb49c" />
 
 GITHUB
 
