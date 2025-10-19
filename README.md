@@ -33,6 +33,6 @@ GITHUB
 - Presentación Proyecto.ppt
 - 1.4_APT122_FormativaFase1.docx
 - 1.5_GuiaEstudiante_Fase 1_Definicion Proyecto APT (Español)
-- 1.5_GuiaEstudiante_Fase 1_Definicion Proyecto APT (Inglés)
+- PLANILLA DE EVALUACIÓN FASE 1.xlsx
 
 ## Fase2:
