@@ -881,6 +881,105 @@ def api_login_ionic(request):
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
 @csrf_exempt
+def api_register_ciudadano(request):
+    """API para registro de ciudadanos desde Ionic"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print(f"📥 Datos recibidos para registro: {data}")
+            
+            # Validar campos requeridos
+            required_fields = [
+                'rut_usuario', 'nombre_usuario', 'apellido_pat_usuario',
+                'apellido_mat_usuario', 'correo_electronico_usuario',
+                'telefono_movil_usuario', 'password'
+            ]
+            
+            for field in required_fields:
+                if not data.get(field):
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'El campo {field} es requerido'
+                    }, status=400)
+            
+            # Verificar si el correo ya existe
+            if Usuario.objects.filter(correo_electronico_usuario=data['correo_electronico_usuario']).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'El correo electrónico ya está registrado'
+                }, status=400)
+            
+            # Verificar si el RUT ya existe
+            if Usuario.objects.filter(rut_usuario=data['rut_usuario']).exists():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'El RUT ya está registrado'
+                }, status=400)
+            
+            # Asignar automáticamente rol de Ciudadano (id=3)
+            try:
+                rol_ciudadano = Roles.objects.get(id_rol=3)
+                print(f"✅ Rol Ciudadano encontrado: {rol_ciudadano.nombre_rol}")
+            except Roles.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Rol Ciudadano no configurado en el sistema'
+                }, status=500)
+            
+            print("✅ Creando usuario con datos:", {
+                'correo': data['correo_electronico_usuario'],
+                'rut': data['rut_usuario'],
+                'nombre': data['nombre_usuario'],
+                'rol': rol_ciudadano.id_rol
+            })
+            
+            # Crear el usuario usando el manager personalizado
+            usuario = Usuario.objects.create_user(
+                correo_electronico_usuario=data['correo_electronico_usuario'],
+                password=data['password'],
+                rut_usuario=data['rut_usuario'],
+                nombre_usuario=data['nombre_usuario'],
+                apellido_pat_usuario=data['apellido_pat_usuario'],
+                apellido_mat_usuario=data['apellido_mat_usuario'],
+                telefono_movil_usuario=data['telefono_movil_usuario'],
+                id_rol=rol_ciudadano,  # Rol Ciudadano
+                is_active=True  # Ciudadanos activos por defecto
+            )
+            
+            print(f"✅ Usuario creado exitosamente: {usuario.id_usuario}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Usuario registrado correctamente',
+                'user': {
+                    'id_usuario': usuario.id_usuario,
+                    'nombre_completo': f"{usuario.nombre_usuario} {usuario.apellido_pat_usuario}",
+                    'correo_electronico_usuario': usuario.correo_electronico_usuario,
+                    'rut_usuario': usuario.rut_usuario,
+                    'rol': usuario.id_rol.nombre_rol
+                }
+            }, status=201)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'JSON inválido'
+            }, status=400)
+        except Exception as e:
+            print(f"❌ Error en registro de ciudadano: {str(e)}")
+            import traceback
+            print(f"❌ Traceback completo: {traceback.format_exc()}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Error interno del servidor: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Método no permitido'
+    }, status=405)
+
+@csrf_exempt
 def api_vehiculos(request):
     """API para gestión de vehículos"""
     try:

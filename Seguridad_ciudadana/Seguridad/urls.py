@@ -30,6 +30,7 @@ urlpatterns = [
     
         # ========== NUEVAS APIs PARA IONIC ==========
     path('api/ionic/login/', views.api_login_ionic, name='api_login_ionic'),
+    path('api/ionic/register/', views.api_register_ciudadano, name='api_register_ciudadano'),
     path('api/ionic/dashboard/stats/', views.api_dashboard_stats, name='api_dashboard_stats'),
     path('api/ionic/vehiculos/', views.api_vehiculos, name='api_vehiculos'),
     path('api/ionic/tipos-vehiculos/', views.api_tipos_vehiculos, name='api_tipos_vehiculos'),

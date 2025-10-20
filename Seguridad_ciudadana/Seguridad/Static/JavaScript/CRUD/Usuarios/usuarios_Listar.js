@@ -103,12 +103,6 @@ function mostrarUsuarios(usuarios) {
                         <span>${usuario.fecha_creacion || 'No disponible'}</span>
                     </div>
                 </div>
-                
-                <div class="usuario-acciones">
-                    <button class="btn-eliminar-usuario-card" onclick="eliminarUsuarioDesdeLista(${usuario.id_usuario})" ${usuario.id_usuario === 1 ? 'disabled' : ''}>
-                        <i class="fa-solid fa-trash"></i> Eliminar
-                    </button>
-                </div>
             </div>
         `;
     }).join('');

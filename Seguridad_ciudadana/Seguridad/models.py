@@ -7,9 +7,15 @@ class RolManager(BaseUserManager):
         if not correo_electronico_usuario:
             raise ValueError('El correo electrónico es obligatorio')
         
-        # Filtrar campos que no existen en nuestro modelo
+        # ✅ CORREGIDO: Incluir solo los campos que existen en el modelo Usuario
+        campos_permitidos = [
+            'rut_usuario', 'nombre_usuario', 'apellido_pat_usuario', 
+            'apellido_mat_usuario', 'telefono_movil_usuario', 'id_rol', 
+            'id_turno', 'is_active'
+        ]
+        
         filtered_fields = {k: v for k, v in extra_fields.items() 
-                          if k not in ['is_staff', 'is_superuser']}
+                          if k in campos_permitidos}
         
         correo = self.normalize_email(correo_electronico_usuario)
         user = self.model(correo_electronico_usuario=correo, **filtered_fields)
