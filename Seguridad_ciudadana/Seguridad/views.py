@@ -4,7 +4,13 @@ from django.contrib.auth import login, authenticate, logout # type: ignore
 from django.contrib.auth.decorators import login_required # type: ignore
 from django.http import JsonResponse # type: ignore
 from django.utils import timezone # type: ignore
-from .models import FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, TiposVehiculos, Usuario, Denuncia, Vehiculos, AsignacionesVehiculos, Roles, Turnos
+from .models import (
+    FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, 
+    TiposVehiculos, Usuario, Denuncia, Vehiculos, 
+    AsignacionVehiculo, AsignacionRadio, Roles, Turnos,
+    Ciudadano, ServiciosEmergencia, MovilesDenuncia, DerivacionesDenuncia,
+    Fiscalizacion, SolicitudCiudadano, Radio
+)
 from django.views.decorators.csrf import csrf_exempt # type: ignore
 import json
 from django.db.models import Q # type: ignore
@@ -58,11 +64,14 @@ def iniciar_sesion(request):
         user = authenticate(request, username=correo_electronico_usuario, password=password)
         
         if user is not None:
-            if user.es_administrador or user.es_operador:
+            # ✅ CORREGIDO: Verificar por nombre de rol en lugar de propiedades que no existen
+            rol_permitido = user.id_rol.nombre_rol.lower() in ['administrador', 'operador', 'supervisor', 'inspector']
+            
+            if rol_permitido:
                 login(request, user)
             
                 # ✅ MENSAJE PERSONALIZADO POR ROL
-                rol_mensaje = "Administrador" if user.es_administrador else "Operador"
+                rol_mensaje = user.id_rol.nombre_rol
                 request.session['usuario_nombre'] = f'{user.nombre_usuario} {user.apellido_pat_usuario}'
                 request.session['usuario_rol'] = rol_mensaje
                 request.session['mostrar_bienvenida'] = True
@@ -110,10 +119,10 @@ def registrar(request):
         return redirect('login')
     return render(request, 'registro.html')
 
-# Vistas de dashboard según rol
 @login_required
 def admin_dashboard(request):
-    if not request.user.es_administrador:
+    # ✅ CORREGIDO: Verificar por nombre de rol
+    if request.user.id_rol.nombre_rol.lower() != 'administrador':
         return redirect('index')
     
     total_usuarios = Usuario.objects.count()
@@ -127,10 +136,9 @@ def admin_dashboard(request):
     }
     return render(request, 'Usuario/Admin.html', context)
 
-# Vista para la página de administración
 def admin_requerimientos(request):
     """Página principal de gestión de requerimientos"""
-    if not request.user.is_authenticated or not request.user.es_administrador:
+    if not request.user.is_authenticated or request.user.id_rol.nombre_rol.lower() != 'administrador':
         return redirect('login')
     
     # Obtener todos los datos para mostrar
@@ -147,7 +155,7 @@ def admin_requerimientos(request):
     }
     return render(request, 'CRUD/Admin/requerimientos.html', context)
 
-# ✅ API PARA FAMILIAS (COMPLETA - GET, POST, DELETE)
+# ✅ API PARA FAMILIAS (CORREGIDA SEGÚN BD REAL)
 @csrf_exempt
 def api_familias(request, familia_id=None):
     """Manejar operaciones CRUD para familias"""
@@ -157,9 +165,9 @@ def api_familias(request, familia_id=None):
             data = []
             for familia in familias:
                 data.append({
-                    'id_familia_denuncia': familia.id_familia_denuncia,
+                    'id': familia.id_familia_denuncia,  # CAMBIADO: id en lugar de id_familia_denuncia
                     'nombre_familia_denuncia': familia.nombre_familia_denuncia,
-                    'codigo_familia': familia.codigo_familia
+                    'codigo_familia': familia.codigo_familia  # CAMBIADO: codigo_familia en lugar de codigo_familia_denuncia
                 })
             return JsonResponse(data, safe=False)
         
@@ -174,30 +182,200 @@ def api_familias(request, familia_id=None):
             if FamiliaDenuncia.objects.filter(nombre_familia_denuncia=nombre).exists():
                 return JsonResponse({'error': 'La familia ya existe'}, status=400)
             
-            # Obtener el último ID
-            ultima_familia = FamiliaDenuncia.objects.order_by('-id_familia_denuncia').first()
-            nuevo_id = ultima_familia.id_familia_denuncia + 1 if ultima_familia else 1
-            
-            # Crear código
-            codigo_familia = nombre[:3].upper() + str(nuevo_id).zfill(3)
-            
+            # Crear familia con el campo correcto
             familia = FamiliaDenuncia.objects.create(
-                id_familia_denuncia=nuevo_id,
                 nombre_familia_denuncia=nombre,
-                codigo_familia=codigo_familia
+                codigo_familia=nombre[:3].upper() + str(FamiliaDenuncia.objects.count() + 1).zfill(3)
             )
             
             return JsonResponse({
-                'id_familia_denuncia': familia.id_familia_denuncia,
+                'id': familia.id_familia_denuncia,  # CAMBIADO: id en lugar de id_familia_denuncia
                 'nombre_familia_denuncia': familia.nombre_familia_denuncia,
-                'codigo_familia': familia.codigo_familia
+                'codigo_familia': familia.codigo_familia  # CAMBIADO: codigo_familia en lugar de codigo_familia_denuncia
             })
             
     except Exception as e:
         print(f"❌ Error en api_familias: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA DETALLE DE FAMILIA (DELETE)
+# ✅ API PARA GRUPOS (CORREGIDA SEGÚN BD REAL)
+@csrf_exempt
+def api_grupos(request, grupo_id=None):
+    """Manejar operaciones CRUD para grupos - CORREGIDA"""
+    try:
+        if request.method == 'GET':
+            familia_id = request.GET.get('familia_id')
+            
+            if familia_id:
+                # ✅ FILTRAR POR FAMILIA
+                grupos = GrupoDenuncia.objects.filter(id_familia_denuncia_id=familia_id)
+            else:
+                # ✅ OBTENER TODOS LOS GRUPOS
+                grupos = GrupoDenuncia.objects.all()
+            
+            data = []
+            for grupo in grupos:
+                data.append({
+                    'id_grupo_denuncia': grupo.id_grupo_denuncia,
+                    'nombre_grupo_denuncia': grupo.nombre_grupo_denuncia,
+                    'codigo_grupo': grupo.codigo_grupo,  # ✅ CAMPO CORRECTO según tu modelo
+                    'id_familia_denuncia': grupo.id_familia_denuncia_id
+                })
+            
+            print(f"✅ Grupos encontrados: {len(data)}")
+            return JsonResponse(data, safe=False)
+        
+        elif request.method == 'POST':
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            familia_id = data.get('familia_id')
+            
+            if not nombre or not familia_id:
+                return JsonResponse({'error': 'Nombre y familia_id son requeridos'}, status=400)
+            
+            # Verificar que la familia existe
+            try:
+                familia = FamiliaDenuncia.objects.get(id_familia_denuncia=familia_id)
+            except FamiliaDenuncia.DoesNotExist:
+                return JsonResponse({'error': 'La familia especificada no existe'}, status=400)
+            
+            # Crear grupo con campos correctos
+            grupo = GrupoDenuncia.objects.create(
+                nombre_grupo_denuncia=nombre,
+                id_familia_denuncia_id=familia_id,
+                codigo_grupo=nombre[:3].upper() + str(GrupoDenuncia.objects.count() + 1).zfill(3)
+            )
+            
+            return JsonResponse({
+                'id_grupo_denuncia': grupo.id_grupo_denuncia,
+                'nombre_grupo_denuncia': grupo.nombre_grupo_denuncia,
+                'codigo_grupo': grupo.codigo_grupo,  # ✅ CAMPO CORRECTO
+                'id_familia_denuncia': grupo.id_familia_denuncia_id
+            })
+            
+    except Exception as e:
+        print(f"❌ Error en api_grupos: {str(e)}")
+        import traceback
+        print(f"📋 Traceback: {traceback.format_exc()}")
+        return JsonResponse({'error': f'Error interno del servidor: {str(e)}'}, status=500)
+    
+# ✅ API PARA SUBGRUPOS (CORREGIDA SEGÚN BD REAL)
+@csrf_exempt
+def api_subgrupos(request, subgrupo_id=None):
+    """Manejar operaciones CRUD para subgrupos"""
+    try:
+        if request.method == 'GET':
+            grupo_id = request.GET.get('grupo_id')
+            if grupo_id:
+                subgrupos = SubgrupoDenuncia.objects.filter(id_grupo_denuncia_id=grupo_id)
+            else:
+                subgrupos = SubgrupoDenuncia.objects.all()
+            
+            data = []
+            for subgrupo in subgrupos:
+                data.append({
+                    'id': subgrupo.id_subgrupo_denuncia,  # CAMBIADO: id en lugar de id_subgrupo_denuncia
+                    'nombre_subgrupo_denuncia': subgrupo.nombre_subgrupo_denuncia,
+                    'codigo_subgrupo': subgrupo.codigo_subgrupo,  # CAMBIADO: codigo_subgrupo en lugar de codigo_subgrupo_denuncia
+                    'id_grupo_denuncia': subgrupo.id_grupo_denuncia_id
+                })
+            return JsonResponse(data, safe=False)
+        
+        elif request.method == 'POST':
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            grupo_id = data.get('grupo_id')
+            
+            if not nombre or not grupo_id:
+                return JsonResponse({'error': 'Nombre y grupo_id son requeridos'}, status=400)
+            
+            # Verificar que el grupo existe
+            try:
+                grupo = GrupoDenuncia.objects.get(id_grupo_denuncia=grupo_id)
+            except GrupoDenuncia.DoesNotExist:
+                return JsonResponse({'error': 'El grupo especificado no existe'}, status=400)
+            
+            # Crear subgrupo con campo correcto
+            subgrupo = SubgrupoDenuncia.objects.create(
+                nombre_subgrupo_denuncia=nombre,
+                id_grupo_denuncia_id=grupo_id,
+                codigo_subgrupo=nombre[:3].upper() + str(SubgrupoDenuncia.objects.count() + 1).zfill(3)
+            )
+            
+            return JsonResponse({
+                'id': subgrupo.id_subgrupo_denuncia,  # CAMBIADO: id en lugar de id_subgrupo_denuncia
+                'nombre_subgrupo_denuncia': subgrupo.nombre_subgrupo_denuncia,
+                'codigo_subgrupo': subgrupo.codigo_subgrupo,  # CAMBIADO: codigo_subgrupo en lugar de codigo_subgrupo_denuncia
+                'id_grupo_denuncia': subgrupo.id_grupo_denuncia_id
+            })
+            
+    except Exception as e:
+        print(f"❌ Error en api_subgrupos: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ✅ API PARA REQUERIMIENTOS (CORREGIDA SEGÚN BD REAL)
+@csrf_exempt
+def api_requerimientos(request):
+    """Listar y crear requerimientos"""
+    try:
+        if request.method == 'GET':
+            subgrupo_id = request.GET.get('subgrupo_id')
+            if subgrupo_id:
+                requerimientos = Requerimiento.objects.filter(id_subgrupo_denuncia_id=subgrupo_id)
+            else:
+                requerimientos = Requerimiento.objects.all()
+            
+            data = []
+            for req in requerimientos:
+                data.append({
+                    'id': req.id_requerimiento,  # CAMBIADO: id en lugar de id_requerimiento
+                    'nombre_requerimiento': req.nombre_requerimiento,  # CAMBIADO: nombre_requerimiento en lugar de nombre_requerimiento_denuncia
+                    'clasificacion_requerimiento': req.clasificacion_requerimiento,  # CAMBIADO: clasificacion_requerimiento en lugar de clasificacion_requerimiento_denuncia
+                    'descripcion_requerimiento': req.descripcion_requerimiento,  # CAMBIADO: descripcion_requerimiento en lugar de descripcion_requerimiento_denuncia
+                    'codigo_requerimiento': req.codigo_requerimiento,  # CAMBIADO: codigo_requerimiento en lugar de codigo_requerimiento_denuncia
+                    'id_subgrupo_denuncia': req.id_subgrupo_denuncia_id,
+                })
+            return JsonResponse(data, safe=False)
+        
+        elif request.method == 'POST':
+            data = json.loads(request.body)
+            nombre = data.get('nombre')
+            subgrupo_id = data.get('subgrupo_id')
+            clasificacion = data.get('clasificacion', 'Media')
+            descripcion = data.get('descripcion', '')
+            
+            if not nombre or not subgrupo_id:
+                return JsonResponse({'error': 'Nombre y subgrupo_id son requeridos'}, status=400)
+            
+            # Verificar que el subgrupo existe
+            try:
+                subgrupo = SubgrupoDenuncia.objects.get(id_subgrupo_denuncia=subgrupo_id)
+            except SubgrupoDenuncia.DoesNotExist:
+                return JsonResponse({'error': 'El subgrupo especificado no existe'}, status=400)
+            
+            # Crear requerimiento
+            requerimiento = Requerimiento.objects.create(
+                nombre_requerimiento=nombre,  # CAMBIADO: nombre_requerimiento en lugar de nombre_requerimiento_denuncia
+                clasificacion_requerimiento=clasificacion,  # CAMBIADO: clasificacion_requerimiento en lugar de clasificacion_requerimiento_denuncia
+                descripcion_requerimiento=descripcion,  # CAMBIADO: descripcion_requerimiento en lugar de descripcion_requerimiento_denuncia
+                id_subgrupo_denuncia_id=subgrupo_id,
+                codigo_requerimiento=nombre[:3].upper() + str(Requerimiento.objects.count() + 1).zfill(3)
+            )
+            
+            return JsonResponse({
+                'id': requerimiento.id_requerimiento,  # CAMBIADO: id en lugar de id_requerimiento
+                'nombre_requerimiento': requerimiento.nombre_requerimiento,  # CAMBIADO: nombre_requerimiento en lugar de nombre_requerimiento_denuncia
+                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,  # CAMBIADO: clasificacion_requerimiento en lugar de clasificacion_requerimiento_denuncia
+                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,  # CAMBIADO: descripcion_requerimiento en lugar de descripcion_requerimiento_denuncia
+                'codigo_requerimiento': requerimiento.codigo_requerimiento,  # CAMBIADO: codigo_requerimiento en lugar de codigo_requerimiento_denuncia
+                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id
+            })
+            
+    except Exception as e:
+        print(f"❌ Error en api_requerimientos: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ✅ API PARA DETALLE DE FAMILIA (CORREGIDA)
 @csrf_exempt
 def api_familia_detalle(request, familia_id):
     """Manejar operaciones CRUD para una familia específica"""
@@ -220,68 +398,7 @@ def api_familia_detalle(request, familia_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA GRUPOS (COMPLETA - GET, POST, DELETE)
-@csrf_exempt
-def api_grupos(request, grupo_id=None):
-    """Manejar operaciones CRUD para grupos"""
-    try:
-        if request.method == 'GET':
-            familia_id = request.GET.get('familia_id')
-            if familia_id:
-                grupos = GrupoDenuncia.objects.filter(id_familia_denuncia_id=familia_id)
-            else:
-                grupos = GrupoDenuncia.objects.all()
-            
-            data = []
-            for grupo in grupos:
-                data.append({
-                    'id_grupo_denuncia': grupo.id_grupo_denuncia,
-                    'nombre_grupo_denuncia': grupo.nombre_grupo_denuncia,
-                    'codigo_grupo': grupo.codigo_grupo,
-                    'id_familia_denuncia': grupo.id_familia_denuncia_id
-                })
-            return JsonResponse(data, safe=False)
-        
-        elif request.method == 'POST':
-            data = json.loads(request.body)
-            nombre = data.get('nombre')
-            familia_id = data.get('familia_id')
-            
-            if not nombre or not familia_id:
-                return JsonResponse({'error': 'Nombre y familia_id son requeridos'}, status=400)
-            
-            # Verificar que la familia existe
-            try:
-                familia = FamiliaDenuncia.objects.get(id_familia_denuncia=familia_id)
-            except FamiliaDenuncia.DoesNotExist:
-                return JsonResponse({'error': 'La familia especificada no existe'}, status=400)
-            
-            # Obtener el último ID
-            ultimo_grupo = GrupoDenuncia.objects.order_by('-id_grupo_denuncia').first()
-            nuevo_id = ultimo_grupo.id_grupo_denuncia + 1 if ultimo_grupo else 1
-            
-            # Crear código
-            codigo_grupo = nombre[:3].upper() + str(nuevo_id).zfill(3)
-            
-            grupo = GrupoDenuncia.objects.create(
-                id_grupo_denuncia=nuevo_id,
-                nombre_grupo_denuncia=nombre,
-                id_familia_denuncia_id=familia_id,
-                codigo_grupo=codigo_grupo
-            )
-            
-            return JsonResponse({
-                'id_grupo_denuncia': grupo.id_grupo_denuncia,
-                'nombre_grupo_denuncia': grupo.nombre_grupo_denuncia,
-                'codigo_grupo': grupo.codigo_grupo,
-                'id_familia_denuncia': grupo.id_familia_denuncia_id
-            })
-            
-    except Exception as e:
-        print(f"❌ Error en api_grupos: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
-
-# ✅ API PARA DETALLE DE GRUPO (DELETE)
+# ✅ API PARA DETALLE DE GRUPO (CORREGIDA)
 @csrf_exempt
 def api_grupo_detalle(request, grupo_id):
     """Manejar operaciones CRUD para un grupo específico"""
@@ -304,68 +421,7 @@ def api_grupo_detalle(request, grupo_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA SUBGRUPOS (COMPLETA - GET, POST, DELETE)
-@csrf_exempt
-def api_subgrupos(request, subgrupo_id=None):
-    """Manejar operaciones CRUD para subgrupos"""
-    try:
-        if request.method == 'GET':
-            grupo_id = request.GET.get('grupo_id')
-            if grupo_id:
-                subgrupos = SubgrupoDenuncia.objects.filter(id_grupo_denuncia_id=grupo_id)
-            else:
-                subgrupos = SubgrupoDenuncia.objects.all()
-            
-            data = []
-            for subgrupo in subgrupos:
-                data.append({
-                    'id_subgrupo_denuncia': subgrupo.id_subgrupo_denuncia,
-                    'nombre_subgrupo_denuncia': subgrupo.nombre_subgrupo_denuncia,
-                    'codigo_subgrupo': subgrupo.codigo_subgrupo,
-                    'id_grupo_denuncia': subgrupo.id_grupo_denuncia_id
-                })
-            return JsonResponse(data, safe=False)
-        
-        elif request.method == 'POST':
-            data = json.loads(request.body)
-            nombre = data.get('nombre')
-            grupo_id = data.get('grupo_id')
-            
-            if not nombre or not grupo_id:
-                return JsonResponse({'error': 'Nombre y grupo_id son requeridos'}, status=400)
-            
-            # Verificar que el grupo existe
-            try:
-                grupo = GrupoDenuncia.objects.get(id_grupo_denuncia=grupo_id)
-            except GrupoDenuncia.DoesNotExist:
-                return JsonResponse({'error': 'El grupo especificado no existe'}, status=400)
-            
-            # Obtener el último ID para generar uno nuevo
-            ultimo_subgrupo = SubgrupoDenuncia.objects.order_by('-id_subgrupo_denuncia').first()
-            nuevo_id = ultimo_subgrupo.id_subgrupo_denuncia + 1 if ultimo_subgrupo else 1
-            
-            # Crear código único
-            codigo_subgrupo = nombre[:3].upper() + str(nuevo_id).zfill(3)
-            
-            subgrupo = SubgrupoDenuncia.objects.create(
-                id_subgrupo_denuncia=nuevo_id,
-                nombre_subgrupo_denuncia=nombre,
-                id_grupo_denuncia_id=grupo_id,
-                codigo_subgrupo=codigo_subgrupo
-            )
-            
-            return JsonResponse({
-                'id_subgrupo_denuncia': subgrupo.id_subgrupo_denuncia, 
-                'nombre_subgrupo_denuncia': subgrupo.nombre_subgrupo_denuncia,
-                'codigo_subgrupo': subgrupo.codigo_subgrupo,
-                'id_grupo_denuncia': subgrupo.id_grupo_denuncia_id
-            })
-            
-    except Exception as e:
-        print(f"❌ Error en api_subgrupos: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
-
-# ✅ API PARA DETALLE DE SUBGRUPO (DELETE)
+# ✅ API PARA DETALLE DE SUBGRUPO (CORREGIDA)
 @csrf_exempt
 def api_subgrupo_detalle(request, subgrupo_id):
     """Manejar operaciones CRUD para un subgrupo específico"""
@@ -388,93 +444,101 @@ def api_subgrupo_detalle(request, subgrupo_id):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA REQUERIMIENTOS (ACTUALIZADA CON JERARQUÍA COMPLETA)
 @csrf_exempt
-def api_requerimientos(request):
-    """Listar y crear requerimientos CON INFORMACIÓN COMPLETA DE JERARQUÍA"""
+def api_requerimiento_detalle(request, requerimiento_id):
+    """Manejar operaciones CRUD para un requerimiento específico"""
     try:
-        if request.method == 'GET':
-            subgrupo_id = request.GET.get('subgrupo_id')
-            if subgrupo_id:
-                requerimientos = Requerimiento.objects.filter(id_subgrupo_denuncia_id=subgrupo_id)
-            else:
-                requerimientos = Requerimiento.objects.all()
+        requerimiento = Requerimiento.objects.get(id_requerimiento=requerimiento_id)
+    except Requerimiento.DoesNotExist:
+        return JsonResponse({'error': 'Requerimiento no encontrado'}, status=404)
+    
+    if request.method == 'GET':
+        # ✅ OBTENER INFORMACIÓN DE JERARQUÍA
+        try:
+            subgrupo = requerimiento.id_subgrupo_denuncia
+            grupo = subgrupo.id_grupo_denuncia
+            familia = grupo.id_familia_denuncia
             
-            # ✅ INCLUIR INFORMACIÓN COMPLETA DE JERARQUÍA
-            requerimientos = requerimientos.select_related(
-                'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
-            )
-            
-            data = []
-            for req in requerimientos:
-                # Obtener información de la jerarquía
-                subgrupo = req.id_subgrupo_denuncia
-                grupo = subgrupo.id_grupo_denuncia
-                familia = grupo.id_familia_denuncia
-                
-                data.append({
-                    'id_requerimiento': req.id_requerimiento,
-                    'nombre_requerimiento': req.nombre_requerimiento,
-                    'clasificacion_requerimiento': req.clasificacion_requerimiento,
-                    'descripcion_requerimiento': req.descripcion_requerimiento,
-                    'codigo_requerimiento': req.codigo_requerimiento,
-                    'id_subgrupo_denuncia': req.id_subgrupo_denuncia_id,
-                    # ✅ INFORMACIÓN COMPLETA DE JERARQUÍA
-                    'familia_nombre': familia.nombre_familia_denuncia,
-                    'familia_codigo': familia.codigo_familia,
-                    'grupo_nombre': grupo.nombre_grupo_denuncia,
-                    'grupo_codigo': grupo.codigo_grupo,
-                    'subgrupo_nombre': subgrupo.nombre_subgrupo_denuncia,
-                    'subgrupo_codigo': subgrupo.codigo_subgrupo
-                })
-            return JsonResponse(data, safe=False)
+            data = {
+                'id_requerimiento': requerimiento.id_requerimiento,
+                'nombre_requerimiento': requerimiento.nombre_requerimiento,  # ✅ CAMPO CORRECTO
+                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,  # ✅ CAMPO CORRECTO
+                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,  # ✅ CAMPO CORRECTO
+                'codigo_requerimiento': requerimiento.codigo_requerimiento,  # ✅ CAMPO CORRECTO
+                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
+                # ✅ INFORMACIÓN DE JERARQUÍA
+                'familia_nombre': familia.nombre_familia_denuncia,
+                'grupo_nombre': grupo.nombre_grupo_denuncia,
+                'subgrupo_nombre': subgrupo.nombre_subgrupo_denuncia,
+                'id_familia_denuncia': familia.id_familia_denuncia,
+                'id_grupo_denuncia': grupo.id_grupo_denuncia,
+            }
+        except Exception as e:
+            print(f"⚠️ Error obteniendo jerarquía: {e}")
+            data = {
+                'id_requerimiento': requerimiento.id_requerimiento,
+                'nombre_requerimiento': requerimiento.nombre_requerimiento,
+                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
+                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
+                'codigo_requerimiento': requerimiento.codigo_requerimiento,
+                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
+                'familia_nombre': 'No disponible',
+                'grupo_nombre': 'No disponible',
+                'subgrupo_nombre': 'No disponible',
+            }
         
-        elif request.method == 'POST':
+        return JsonResponse(data)
+    
+    elif request.method == 'PUT':
+        try:
             data = json.loads(request.body)
-            nombre = data.get('nombre')
-            subgrupo_id = data.get('subgrupo_id')
-            clasificacion = data.get('clasificacion', 'Media')
-            descripcion = data.get('descripcion', '')
+            print(f"📥 Datos recibidos para actualizar requerimiento {requerimiento_id}: {data}")
             
-            if not nombre or not subgrupo_id:
-                return JsonResponse({'error': 'Nombre y subgrupo_id son requeridos'}, status=400)
+            # ✅ ACTUALIZAR CAMPOS CON NOMBRES CORRECTOS
+            if 'nombre_requerimiento' in data:
+                requerimiento.nombre_requerimiento = data['nombre_requerimiento']
+                print(f"✅ Nombre actualizado a: {data['nombre_requerimiento']}")
             
-            # Verificar que el subgrupo existe
-            try:
-                subgrupo = SubgrupoDenuncia.objects.get(id_subgrupo_denuncia=subgrupo_id)
-            except SubgrupoDenuncia.DoesNotExist:
-                return JsonResponse({'error': 'El subgrupo especificado no existe'}, status=400)
+            if 'clasificacion_requerimiento' in data:
+                requerimiento.clasificacion_requerimiento = data['clasificacion_requerimiento']
+                print(f"✅ Clasificación actualizada a: {data['clasificacion_requerimiento']}")
             
-            # Obtener el último ID
-            ultimo_requerimiento = Requerimiento.objects.order_by('-id_requerimiento').first()
-            nuevo_id = ultimo_requerimiento.id_requerimiento + 1 if ultimo_requerimiento else 1
+            if 'descripcion_requerimiento' in data:
+                requerimiento.descripcion_requerimiento = data['descripcion_requerimiento']
+                print(f"✅ Descripción actualizada")
             
-            # Crear código
-            codigo_requerimiento = nombre[:3].upper() + str(nuevo_id).zfill(3)
+            if 'id_subgrupo_denuncia' in data:
+                # Verificar que el subgrupo existe
+                try:
+                    subgrupo = SubgrupoDenuncia.objects.get(id_subgrupo_denuncia=data['id_subgrupo_denuncia'])
+                    requerimiento.id_subgrupo_denuncia = subgrupo
+                    print(f"✅ Subgrupo actualizado a ID: {data['id_subgrupo_denuncia']}")
+                except SubgrupoDenuncia.DoesNotExist:
+                    return JsonResponse({'error': 'Subgrupo no encontrado'}, status=400)
             
-            requerimiento = Requerimiento.objects.create(
-                id_requerimiento=nuevo_id,
-                nombre_requerimiento=nombre,
-                clasificacion_requerimiento=clasificacion,
-                descripcion_requerimiento=descripcion,
-                id_subgrupo_denuncia_id=subgrupo_id,
-                codigo_requerimiento=codigo_requerimiento
-            )
+            requerimiento.save()
+            print(f"✅ Requerimiento {requerimiento_id} actualizado correctamente")
             
             return JsonResponse({
                 'id_requerimiento': requerimiento.id_requerimiento,
                 'nombre_requerimiento': requerimiento.nombre_requerimiento,
                 'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
                 'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
-                'codigo_requerimiento': requerimiento.codigo_requerimiento,
-                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id
+                'mensaje': 'Requerimiento actualizado correctamente'
             })
             
-    except Exception as e:
-        print(f"❌ Error en api_requerimientos: {str(e)}")
-        return JsonResponse({'error': str(e)}, status=500)
-
-# ✅ API PARA RUTA COMPLETA
+        except Exception as e:
+            print(f"❌ Error actualizando requerimiento {requerimiento_id}: {str(e)}")
+            return JsonResponse({'error': f'Error al actualizar requerimiento: {str(e)}'}, status=500)
+    
+    elif request.method == 'DELETE':
+        try:
+            requerimiento.delete()
+            return JsonResponse({'mensaje': 'Requerimiento eliminado correctamente'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+# ✅ API PARA RUTA COMPLETA - CORREGIDA
 @csrf_exempt
 def api_requerimiento_ruta_completa(request, requerimiento_id):
     """Obtener la ruta completa (familia → grupo → subgrupo) de un requerimiento"""
@@ -490,23 +554,23 @@ def api_requerimiento_ruta_completa(request, requerimiento_id):
             'familia': {
                 'id': familia.id_familia_denuncia,
                 'nombre': familia.nombre_familia_denuncia,
-                'codigo': familia.codigo_familia
+                'codigo': familia.codigo_familia  # ✅ CORREGIDO: sin _denuncia
             },
             'grupo': {
                 'id': grupo.id_grupo_denuncia,
                 'nombre': grupo.nombre_grupo_denuncia,
-                'codigo': grupo.codigo_grupo
+                'codigo': grupo.codigo_grupo  # ✅ CORREGIDO: sin _denuncia
             },
             'subgrupo': {
                 'id': subgrupo.id_subgrupo_denuncia,
                 'nombre': subgrupo.nombre_subgrupo_denuncia,
-                'codigo': subgrupo.codigo_subgrupo
+                'codigo': subgrupo.codigo_subgrupo  # ✅ CORREGIDO: sin _denuncia
             },
             'requerimiento': {
                 'id': requerimiento.id_requerimiento,
-                'nombre': requerimiento.nombre_requerimiento,
-                'codigo': requerimiento.codigo_requerimiento,
-                'clasificacion': requerimiento.clasificacion_requerimiento
+                'nombre': requerimiento.nombre_requerimiento,  # ✅ CORREGIDO: sin _denuncia
+                'codigo': requerimiento.codigo_requerimiento,  # ✅ CORREGIDO: sin _denuncia
+                'clasificacion': requerimiento.clasificacion_requerimiento  # ✅ CORREGIDO: sin _denuncia
             }
         }
         
@@ -515,78 +579,18 @@ def api_requerimiento_ruta_completa(request, requerimiento_id):
     except Requerimiento.DoesNotExist:
         return JsonResponse({'error': 'Requerimiento no encontrado'}, status=404)
     except Exception as e:
+        print(f"❌ Error en api_requerimiento_ruta_completa: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA DETALLE DE REQUERIMIENTO (PUT, GET, DELETE)
-@csrf_exempt
-def api_requerimiento_detalle(request, requerimiento_id):
-    """Manejar operaciones CRUD para un requerimiento específico"""
-    try:
-        requerimiento = Requerimiento.objects.get(id_requerimiento=requerimiento_id)
-    except Requerimiento.DoesNotExist:
-        return JsonResponse({'error': 'Requerimiento no encontrado'}, status=404)
-    
-    if request.method == 'GET':
-        # Obtener información completa del requerimiento
-        data = {
-            'id_requerimiento': requerimiento.id_requerimiento,
-            'nombre_requerimiento': requerimiento.nombre_requerimiento,
-            'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
-            'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
-            'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
-            'codigo_requerimiento': requerimiento.codigo_requerimiento,
-        }
-        return JsonResponse(data)
-    
-    elif request.method == 'PUT':
-        try:
-            data = json.loads(request.body)
-            
-            # Actualizar campos permitidos
-            if 'nombre_requerimiento' in data:
-                requerimiento.nombre_requerimiento = data['nombre_requerimiento']
-            if 'clasificacion_requerimiento' in data:
-                requerimiento.clasificacion_requerimiento = data['clasificacion_requerimiento']
-            if 'descripcion_requerimiento' in data:
-                requerimiento.descripcion_requerimiento = data['descripcion_requerimiento']
-            if 'id_subgrupo_denuncia' in data:
-                # Verificar que el subgrupo existe
-                try:
-                    subgrupo = SubgrupoDenuncia.objects.get(id_subgrupo_denuncia=data['id_subgrupo_denuncia'])
-                    requerimiento.id_subgrupo_denuncia = subgrupo
-                except SubgrupoDenuncia.DoesNotExist:
-                    return JsonResponse({'error': 'Subgrupo no encontrado'}, status=400)
-            
-            requerimiento.save()
-            
-            return JsonResponse({
-                'id_requerimiento': requerimiento.id_requerimiento,
-                'nombre_requerimiento': requerimiento.nombre_requerimiento,
-                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
-                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
-                'mensaje': 'Requerimiento actualizado correctamente'
-            })
-            
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    
-    elif request.method == 'DELETE':
-        try:
-            requerimiento.delete()
-            return JsonResponse({'mensaje': 'Requerimiento eliminado correctamente'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-# ✅ VISTA PARA PÁGINA DE ADMINISTRACIÓN DE USUARIOS
 @login_required
 def admin_usuarios(request):
     """Página principal de gestión de usuarios"""
-    if not request.user.is_authenticated or not request.user.es_administrador:
+    if not request.user.is_authenticated or request.user.id_rol.nombre_rol.lower() != 'administrador':
         return redirect('login')
     
     # Obtener estadísticas de usuarios
     total_usuarios = Usuario.objects.count()
-    total_administradores = Usuario.objects.filter(id_rol__nombre_rol='Administrador').count()
+    total_administradores = Usuario.objects.filter(id_rol__nombre_rol='administrador').count()
     total_activos = Usuario.objects.filter(is_active=True).count()
     
     context = {
@@ -615,7 +619,7 @@ def api_usuarios(request):
                     'rut_usuario': usuario.rut_usuario,
                     'telefono_movil_usuario': usuario.telefono_movil_usuario,
                     'correo_electronico_usuario': usuario.correo_electronico_usuario,
-                    'estado_usuario': usuario.is_active,  # ✅ Esto está correcto
+                    'estado_usuario': usuario.is_active,
                     'id_rol': usuario.id_rol_id,
                     'rol_nombre': usuario.id_rol.nombre_rol if usuario.id_rol else '',
                     'id_turno': usuario.id_turno_id if usuario.id_turno else None,
@@ -632,7 +636,7 @@ def api_usuarios(request):
             campos_requeridos = [
                 'nombre_usuario', 'apellido_pat_usuario', 'apellido_mat_usuario',
                 'rut_usuario', 'telefono_movil_usuario', 'correo_electronico_usuario',
-                'password_usuario', 'id_rol'
+                'password', 'id_rol'
             ]
             
             for campo in campos_requeridos:
@@ -651,15 +655,15 @@ def api_usuarios(request):
                 # Crear el usuario usando el manager personalizado
                 usuario = Usuario.objects.create_user(
                     correo_electronico_usuario=data['correo_electronico_usuario'],
-                    password=data['password_usuario'],
+                    password=data['password'],
                     nombre_usuario=data['nombre_usuario'],
                     apellido_pat_usuario=data['apellido_pat_usuario'],
                     apellido_mat_usuario=data['apellido_mat_usuario'],
                     rut_usuario=data['rut_usuario'],
-                    telefono_movil_usuario=data['telefono_movil_usuario'],  # Cambiado a telefono_movil_usuario
+                    telefono_movil_usuario=data['telefono_movil_usuario'],
                     id_rol_id=data['id_rol'],
                     id_turno_id=data.get('id_turno'),
-                    is_active=data.get('estado_usuario', True)  # Cambiado a is_active
+                    is_active=data.get('estado_usuario', True)
                 )
                 
                 return JsonResponse({
@@ -740,8 +744,8 @@ def api_usuario_detalle(request, usuario_id):
                     usuario.id_turno = None
                     print("✅ Turno eliminado (seteado a None)")
             
-            if 'password_usuario' in data and data['password_usuario']:
-                usuario.set_password(data['password_usuario'])
+            if 'password' in data and data['password']:
+                usuario.set_password(data['password'])
                 print("✅ Contraseña actualizada")
             
             usuario.save()
@@ -761,14 +765,8 @@ def api_usuario_detalle(request, usuario_id):
     
     elif request.method == 'DELETE':
         try:
-            # ✅ VALIDACIÓN: Verificar que el usuario no sea ciudadano
-            if usuario.id_rol.nombre_rol == 'Ciudadano':
-                return JsonResponse({
-                    'error': 'No se puede eliminar usuarios con rol de Ciudadano'
-                }, status=400)
-            
             # ✅ LISTA DE ROLES PERMITIDOS PARA ELIMINAR
-            roles_permitidos_eliminar = ['Administrador', 'Operador', 'Conductor', 'Inspector']
+            roles_permitidos_eliminar = ['administrador', 'operador', 'supervisor', 'inspector']
             
             if usuario.id_rol.nombre_rol not in roles_permitidos_eliminar:
                 return JsonResponse({
@@ -776,12 +774,7 @@ def api_usuario_detalle(request, usuario_id):
                 }, status=400)
             
             # Verificar si el usuario tiene denuncias asociadas
-            from django.db.models import Q
-            denuncias_asociadas = Denuncia.objects.filter(
-                Q(id_operador1=usuario_id) | 
-                Q(id_operador2=usuario_id) | 
-                Q(id_solicitante=usuario_id)
-            )
+            denuncias_asociadas = Denuncia.objects.filter(id_usuario=usuario_id)
             if denuncias_asociadas.exists():
                 return JsonResponse({
                     'error': 'No se puede eliminar el usuario porque tiene denuncias asociadas'
@@ -847,7 +840,7 @@ def api_login_ionic(request):
             user = authenticate(request, username=email, password=password)
             
             if user is not None and user.is_active:
-                # Login exitoso - devolver datos del usuario
+                # ✅ CORREGIDO: Usar nombre de rol en lugar de propiedades que no existen
                 user_data = {
                     'id_usuario': user.id_usuario,
                     'nombre_usuario': user.nombre_usuario,
@@ -857,10 +850,6 @@ def api_login_ionic(request):
                     'telefono_movil_usuario': user.telefono_movil_usuario,
                     'id_rol': user.id_rol.id_rol,
                     'nombre_rol': user.id_rol.nombre_rol,
-                    'es_administrador': user.es_administrador,
-                    'es_operador': user.es_operador,
-                    'es_conductor': user.es_conductor,
-                    'es_ciudadano': user.es_ciudadano,
                     'is_active': user.is_active
                 }
                 
@@ -880,19 +869,19 @@ def api_login_ionic(request):
     
     return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
 
+# En api_register_ciudadano, cambia los nombres de campos:
 @csrf_exempt
 def api_register_ciudadano(request):
     """API para registro de ciudadanos desde Ionic"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            print(f"📥 Datos recibidos para registro: {data}")
             
-            # Validar campos requeridos
+            # Validar campos requeridos (usando nombres de modelo Ciudadano)
             required_fields = [
-                'rut_usuario', 'nombre_usuario', 'apellido_pat_usuario',
-                'apellido_mat_usuario', 'correo_electronico_usuario',
-                'telefono_movil_usuario', 'password'
+                'rut_ciudadano', 'nombre_ciudadano', 'apellido_pat_ciudadano',
+                'apellido_mat_ciudadano', 'correo_electronico_ciudadano',
+                'telefono_movil_ciudadano', 'contraseña_ciudadano'
             ]
             
             for field in required_fields:
@@ -903,72 +892,43 @@ def api_register_ciudadano(request):
                     }, status=400)
             
             # Verificar si el correo ya existe
-            if Usuario.objects.filter(correo_electronico_usuario=data['correo_electronico_usuario']).exists():
+            if Ciudadano.objects.filter(correo_electronico_ciudadano=data['correo_electronico_ciudadano']).exists():
                 return JsonResponse({
                     'success': False,
                     'error': 'El correo electrónico ya está registrado'
                 }, status=400)
             
             # Verificar si el RUT ya existe
-            if Usuario.objects.filter(rut_usuario=data['rut_usuario']).exists():
+            if Ciudadano.objects.filter(rut_ciudadano=data['rut_ciudadano']).exists():
                 return JsonResponse({
                     'success': False,
                     'error': 'El RUT ya está registrado'
                 }, status=400)
             
-            # Asignar automáticamente rol de Ciudadano (id=3)
-            try:
-                rol_ciudadano = Roles.objects.get(id_rol=3)
-                print(f"✅ Rol Ciudadano encontrado: {rol_ciudadano.nombre_rol}")
-            except Roles.DoesNotExist:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Rol Ciudadano no configurado en el sistema'
-                }, status=500)
-            
-            print("✅ Creando usuario con datos:", {
-                'correo': data['correo_electronico_usuario'],
-                'rut': data['rut_usuario'],
-                'nombre': data['nombre_usuario'],
-                'rol': rol_ciudadano.id_rol
-            })
-            
-            # Crear el usuario usando el manager personalizado
-            usuario = Usuario.objects.create_user(
-                correo_electronico_usuario=data['correo_electronico_usuario'],
-                password=data['password'],
-                rut_usuario=data['rut_usuario'],
-                nombre_usuario=data['nombre_usuario'],
-                apellido_pat_usuario=data['apellido_pat_usuario'],
-                apellido_mat_usuario=data['apellido_mat_usuario'],
-                telefono_movil_usuario=data['telefono_movil_usuario'],
-                id_rol=rol_ciudadano,  # Rol Ciudadano
-                is_active=True  # Ciudadanos activos por defecto
+            # Crear el ciudadano
+            ciudadano = Ciudadano.objects.create(
+                rut_ciudadano=data['rut_ciudadano'],
+                nombre_ciudadano=data['nombre_ciudadano'],
+                apellido_pat_ciudadano=data['apellido_pat_ciudadano'],
+                apellido_mat_ciudadano=data['apellido_mat_ciudadano'],
+                correo_electronico_ciudadano=data['correo_electronico_ciudadano'],
+                telefono_movil_ciudadano=data['telefono_movil_ciudadano'],
+                contraseña_ciudadano=data['contraseña_ciudadano'],
+                is_active_ciudadano=True
             )
-            
-            print(f"✅ Usuario creado exitosamente: {usuario.id_usuario}")
             
             return JsonResponse({
                 'success': True,
-                'message': 'Usuario registrado correctamente',
-                'user': {
-                    'id_usuario': usuario.id_usuario,
-                    'nombre_completo': f"{usuario.nombre_usuario} {usuario.apellido_pat_usuario}",
-                    'correo_electronico_usuario': usuario.correo_electronico_usuario,
-                    'rut_usuario': usuario.rut_usuario,
-                    'rol': usuario.id_rol.nombre_rol
+                'message': 'Ciudadano registrado correctamente',
+                'ciudadano': {
+                    'id_ciudadano': ciudadano.id_ciudadano,
+                    'nombre_completo': f"{ciudadano.nombre_ciudadano} {ciudadano.apellido_pat_ciudadano}",
+                    'correo_electronico_ciudadano': ciudadano.correo_electronico_ciudadano,
+                    'rut_ciudadano': ciudadano.rut_ciudadano
                 }
             }, status=201)
             
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'success': False,
-                'error': 'JSON inválido'
-            }, status=400)
         except Exception as e:
-            print(f"❌ Error en registro de ciudadano: {str(e)}")
-            import traceback
-            print(f"❌ Traceback completo: {traceback.format_exc()}")
             return JsonResponse({
                 'success': False,
                 'error': f'Error interno del servidor: {str(e)}'
@@ -1059,7 +1019,7 @@ def api_denuncias_ionic(request):
     try:
         if request.method == 'GET':
             denuncias = Denuncia.objects.all().select_related(
-                'id_operador1', 'id_solicitante', 'id_requerimiento', 'id_turno'
+                'id_usuario', 'id_ciudadano', 'id_requerimiento_id'
             )
             data = []
             for denuncia in denuncias:
@@ -1067,16 +1027,16 @@ def api_denuncias_ionic(request):
                     'id_denuncia': denuncia.id_denuncia,
                     'hora_denuncia': denuncia.hora_denuncia.isoformat(),
                     'fecha_denuncia': denuncia.fecha_denuncia.isoformat(),
-                    'id_solicitante': denuncia.id_solicitante.id_usuario,
-                    'nombre_solicitante': denuncia.id_solicitante.get_full_name(),
-                    'direccion': denuncia.direccion,
+                    'id_ciudadano': denuncia.id_ciudadano.id_ciudadano,
+                    'nombre_ciudadano': f"{denuncia.id_ciudadano.nombre_ciudadano} {denuncia.id_ciudadano.apellido_pat_ciudadano}",
+                    'direccion_denuncia': denuncia.direccion_denuncia,
                     'detalle_denuncia': denuncia.detalle_denuncia,
                     'estado_denuncia': denuncia.estado_denuncia,
-                    'id_requerimiento': denuncia.id_requerimiento.id_requerimiento,
-                    'nombre_requerimiento': denuncia.id_requerimiento.nombre_requerimiento,
+                    'id_requerimiento': denuncia.id_requerimiento_id.id_requerimiento,
+                    'nombre_requerimiento': denuncia.id_requerimiento_id.nombre_requerimiento_denuncia,
                     'visibilidad_camaras_denuncia': denuncia.visibilidad_camaras_denuncia,
                     'labor_realizada_denuncia': denuncia.labor_realizada_denuncia,
-                    'fecha_creacion': denuncia.fecha_creacion.isoformat() if denuncia.fecha_creacion else None
+                    'fecha_creacion_denuncia': denuncia.fecha_creacion_denuncia.isoformat() if denuncia.fecha_creacion_denuncia else None
                 })
             return JsonResponse({'success': True, 'denuncias': data})
         
@@ -1085,8 +1045,8 @@ def api_denuncias_ionic(request):
             
             # Validar campos requeridos
             campos_requeridos = [
-                'hora_denuncia', 'fecha_denuncia', 'id_solicitante', 'direccion',
-                'id_requerimiento', 'detalle_denuncia', 'id_turno'
+                'hora_denuncia', 'fecha_denuncia', 'id_ciudadano', 'direccion_denuncia',
+                'id_requerimiento_id', 'detalle_denuncia', 'id_usuario'
             ]
             for campo in campos_requeridos:
                 if not data.get(campo):
@@ -1096,15 +1056,17 @@ def api_denuncias_ionic(request):
             denuncia = Denuncia.objects.create(
                 hora_denuncia=data['hora_denuncia'],
                 fecha_denuncia=data['fecha_denuncia'],
-                id_solicitante_id=data['id_solicitante'],
-                direccion=data['direccion'],
-                id_requerimiento_id=data['id_requerimiento'],
+                id_ciudadano_id=data['id_ciudadano'],
+                direccion_denuncia=data['direccion_denuncia'],
+                direccion_denuncia_1=data.get('direccion_denuncia_1', ''),
+                cuadrante_denuncia=data.get('cuadrante_denuncia', 0),
+                id_requerimiento_id_id=data['id_requerimiento_id'],
                 detalle_denuncia=data['detalle_denuncia'],
-                id_turno_id=data['id_turno'],
+                id_usuario_id=data['id_usuario'],
                 visibilidad_camaras_denuncia=data.get('visibilidad_camaras_denuncia', False),
                 labor_realizada_denuncia=data.get('labor_realizada_denuncia', ''),
-                estado_denuncia=data.get('estado_denuncia', 'Recibido'),
-                id_operador1_id=data.get('id_operador1')  # Opcional, puede ser el usuario actual
+                hora_llegada_movil_denuncia=data.get('hora_llegada_movil_denuncia'),
+                estado_denuncia=data.get('estado_denuncia', 'Recibido')
             )
             
             return JsonResponse({
@@ -1112,7 +1074,7 @@ def api_denuncias_ionic(request):
                 'denuncia': {
                     'id_denuncia': denuncia.id_denuncia,
                     'estado_denuncia': denuncia.estado_denuncia,
-                    'fecha_creacion': denuncia.fecha_creacion.isoformat()
+                    'fecha_creacion_denuncia': denuncia.fecha_creacion_denuncia.isoformat()
                 },
                 'message': 'Denuncia creada exitosamente'
             })

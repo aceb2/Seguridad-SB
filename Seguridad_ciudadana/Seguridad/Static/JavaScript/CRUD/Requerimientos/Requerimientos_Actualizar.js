@@ -245,7 +245,6 @@ function buscarRequerimientos() {
     }, 300);
 }
 
-// ✅ BÚSQUEDA MEJORADA CON INFORMACIÓN COMPLETA
 function ejecutarBusqueda() {
     const searchTerm = document.getElementById('buscar-requerimiento').value.toLowerCase().trim();
     const lista = document.getElementById('lista-requerimientos-actualizar');
@@ -275,7 +274,6 @@ function ejecutarBusqueda() {
         const item = document.createElement('div');
         item.className = 'requerimiento-item-actualizar';
         
-        // ✅ MOSTRAR INFORMACIÓN COMPLETA
         const infoJerarquia = requerimiento.familia_nombre && requerimiento.grupo_nombre && requerimiento.subgrupo_nombre 
             ? `${requerimiento.familia_nombre} → ${requerimiento.grupo_nombre} → ${requerimiento.subgrupo_nombre}`
             : 'Jerarquía no disponible';
@@ -344,7 +342,7 @@ async function seleccionarRequerimientoActualizar(requerimiento, elemento) {
     console.log('✅ Requerimiento seleccionado para actualizar');
 }
 
-// ✅ ACTUALIZAR REQUERIMIENTO CON RECARGA INMEDIATA
+// ✅ ACTUALIZAR REQUERIMIENTO CON CAMPOS CORRECTOS
 async function actualizarRequerimiento() {
     if (!requerimientoSeleccionadoActualizar) {
         mostrarError('No hay ningún requerimiento seleccionado');
@@ -368,9 +366,9 @@ async function actualizarRequerimiento() {
     
     try {
         const datosActualizacion = {
-            nombre_requerimiento: nuevoNombre,
-            clasificacion_requerimiento: nuevaClasificacion,
-            descripcion_requerimiento: nuevaDescripcion
+            nombre_requerimiento: nuevoNombre,  // ✅ CAMPO CORRECTO
+            clasificacion_requerimiento: nuevaClasificacion,  // ✅ CAMPO CORRECTO
+            descripcion_requerimiento: nuevaDescripcion  // ✅ CAMPO CORRECTO
         };
         
         // Si se seleccionó un nuevo subgrupo, agregarlo a la actualización
@@ -421,8 +419,6 @@ async function actualizarRequerimiento() {
 function cerrarModalActualizarRequerimiento() {
     console.log('❌ Cerrando modal...');
     document.getElementById('modal-actualizar-requerimiento').style.display = 'none';
-    
-    // No es necesario resetear aquí porque se resetea al abrir
 }
 
 // ✅ FUNCIONES DE UTILIDAD (sin cambios)
@@ -459,58 +455,82 @@ window.onclick = function(event) {
     }
 }
 
-// ✅ CARGAR JERARQUÍA ACTUAL DEL REQUERIMIENTO SELECCIONADO
+// ✅ CARGAR JERARQUÍA ACTUAL DEL REQUERIMIENTO SELECCIONADO - CORREGIDA
 async function cargarJerarquiaActual(requerimiento) {
     try {
         console.log('🗺️ Cargando jerarquía actual del requerimiento...');
         
-        // Si tenemos información de jerarquía en el requerimiento, seleccionarla
-        if (requerimiento.familia_nombre && requerimiento.id_subgrupo_denuncia) {
+        // ✅ OBTENER LA JERARQUÍA COMPLETA DESDE LA API ESPECÍFICA
+        const response = await fetch(`/api/requerimiento_ruta_completa/${requerimiento.id_requerimiento}/`);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const jerarquia = await response.json();
+        console.log('✅ Jerarquía obtenida:', jerarquia);
+        
+        // ✅ USAR LA INFORMACIÓN DE LA JERARQUÍA COMPLETA
+        if (jerarquia.familia && jerarquia.grupo && jerarquia.subgrupo) {
             
-            // Seleccionar familia si está disponible
+            // Seleccionar familia
             const selectFamilia = document.getElementById('select-familia-actualizar');
             if (selectFamilia) {
-                // Buscar la familia por nombre en las familias cargadas
-                const familiaEncontrada = familiasActualizar.find(f => 
-                    f.nombre_familia_denuncia === requerimiento.familia_nombre
-                );
+                // Buscar la familia en las opciones disponibles
+                for (let option of selectFamilia.options) {
+                    if (option.value == jerarquia.familia.id) {
+                        selectFamilia.value = jerarquia.familia.id;
+                        console.log('✅ Familia seleccionada:', jerarquia.familia.nombre);
+                        break;
+                    }
+                }
                 
-                if (familiaEncontrada) {
-                    selectFamilia.value = familiaEncontrada.id_familia_denuncia;
-                    console.log('✅ Familia seleccionada:', requerimiento.familia_nombre);
-                    
-                    // Cargar grupos para esta familia
+                // Si se seleccionó una familia, cargar sus grupos
+                if (selectFamilia.value) {
                     await cargarGruposActualizar();
                     
-                    // Buscar y seleccionar el grupo
+                    // Seleccionar grupo
                     const selectGrupo = document.getElementById('select-grupo-actualizar');
-                    if (selectGrupo && gruposActualizar.length > 0) {
-                        const grupoEncontrado = gruposActualizar.find(g => 
-                            g.nombre_grupo_denuncia === requerimiento.grupo_nombre
-                        );
+                    if (selectGrupo) {
+                        for (let option of selectGrupo.options) {
+                            if (option.value == jerarquia.grupo.id) {
+                                selectGrupo.value = jerarquia.grupo.id;
+                                console.log('✅ Grupo seleccionado:', jerarquia.grupo.nombre);
+                                break;
+                            }
+                        }
                         
-                        if (grupoEncontrado) {
-                            selectGrupo.value = grupoEncontrado.id_grupo_denuncia;
-                            console.log('✅ Grupo seleccionado:', requerimiento.grupo_nombre);
-                            
-                            // Cargar subgrupos para este grupo
+                        // Si se seleccionó un grupo, cargar sus subgrupos
+                        if (selectGrupo.value) {
                             await cargarSubgruposActualizar();
                             
-                            // Seleccionar el subgrupo actual
+                            // Seleccionar subgrupo
                             const selectSubgrupo = document.getElementById('select-subgrupo-actualizar');
                             if (selectSubgrupo) {
-                                selectSubgrupo.value = requerimiento.id_subgrupo_denuncia;
-                                console.log('✅ Subgrupo seleccionado:', requerimiento.subgrupo_nombre);
+                                for (let option of selectSubgrupo.options) {
+                                    if (option.value == jerarquia.subgrupo.id) {
+                                        selectSubgrupo.value = jerarquia.subgrupo.id;
+                                        console.log('✅ Subgrupo seleccionado:', jerarquia.subgrupo.nombre);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
+            
+            // ✅ ACTUALIZAR LA RUTA COMPLETA EN LA INTERFAZ
+            const rutaElement = document.getElementById('ruta-completa-actualizar');
+            rutaElement.textContent = `${jerarquia.familia.nombre} → ${jerarquia.grupo.nombre} → ${jerarquia.subgrupo.nombre}`;
+            rutaElement.style.color = '#28a745';
+            
         } else {
-            console.warn('⚠️ Información de jerarquía incompleta en el requerimiento');
+            console.warn('⚠️ Información de jerarquía incompleta en la respuesta');
+            mostrarError('No se pudo cargar la información completa de la jerarquía');
         }
         
     } catch (error) {
         console.error('❌ Error cargando jerarquía actual:', error);
+        mostrarError('Error al cargar la jerarquía: ' + error.message);
     }
 }

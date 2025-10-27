@@ -1,13 +1,13 @@
-from django.db import models # type: ignore
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager # type: ignore
-from django.core.validators import MinLengthValidator, RegexValidator # type: ignore
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
+from django.core.validators import RegexValidator
 
 class RolManager(BaseUserManager):
     def create_user(self, correo_electronico_usuario, password=None, **extra_fields):
         if not correo_electronico_usuario:
             raise ValueError('El correo electrónico es obligatorio')
         
-        # ✅ CORREGIDO: Incluir solo los campos que existen en el modelo Usuario
         campos_permitidos = [
             'rut_usuario', 'nombre_usuario', 'apellido_pat_usuario', 
             'apellido_mat_usuario', 'telefono_movil_usuario', 'id_rol', 
@@ -23,33 +23,53 @@ class RolManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    # ❌ NO USAR create_superuser - lo haremos manualmente
-    def create_superuser(self, correo_electronico_usuario, password=None, **extra_fields):
-        raise NotImplementedError("Usar create_user con rol Administrador en lugar de create_superuser")
-
 class Roles(models.Model):
     id_rol = models.AutoField(primary_key=True)
     nombre_rol = models.CharField(max_length=50, unique=True)
-    
-    def __str__(self):
-        return self.nombre_rol
-    
+
     class Meta:
+        db_table = 'Seguridad_roles'
         verbose_name = 'Rol'
         verbose_name_plural = 'Roles'
+
+    def __str__(self):
+        return self.nombre_rol
 
 class Turnos(models.Model):
     id_turno = models.AutoField(primary_key=True)
     nombre_turno = models.CharField(max_length=50, unique=True)
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
-    
-    def __str__(self):
-        return f"{self.nombre_turno} ({self.hora_inicio} - {self.hora_fin})"
-    
+
     class Meta:
+        db_table = 'Seguridad_turnos'
         verbose_name = 'Turno'
         verbose_name_plural = 'Turnos'
+
+    def __str__(self):
+        return self.nombre_turno
+
+class Ciudadano(models.Model):
+    id_ciudadano = models.AutoField(primary_key=True)
+    rut_ciudadano = models.CharField(max_length=10, unique=True)
+    nombre_ciudadano = models.CharField(max_length=100)
+    apellido_pat_ciudadano = models.CharField(max_length=225)
+    apellido_mat_ciudadano = models.CharField(max_length=100)
+    correo_electronico_ciudadano = models.CharField(max_length=100, unique=True)
+    telefono_movil_ciudadano = models.CharField(max_length=13)
+    fecha_creacion_ciudadano = models.DateTimeField(default=timezone.now)
+    fecha_actualizacion_ciudadano = models.DateTimeField(auto_now=True)
+    contraseña_ciudadano = models.CharField(max_length=225)
+    ultimo_inicio_ciudadano = models.DateTimeField(null=True, blank=True)
+    is_active_ciudadano = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'Seguridad_ciudadano'
+        verbose_name = 'Ciudadano'
+        verbose_name_plural = 'Ciudadanos'
+
+    def __str__(self):
+        return f"{self.nombre_ciudadano} {self.apellido_pat_ciudadano}"
 
 class Usuario(AbstractBaseUser):
     # Validadores
@@ -73,21 +93,20 @@ class Usuario(AbstractBaseUser):
     nombre_usuario = models.CharField(max_length=100)
     apellido_pat_usuario = models.CharField(max_length=100)
     apellido_mat_usuario = models.CharField(max_length=100)
-    correo_electronico_usuario = models.EmailField(unique=True)
+    correo_electronico_usuario = models.EmailField(max_length=254, unique=True)
     telefono_movil_usuario = models.CharField(
         max_length=20, 
         validators=[telefono_validator]
     )
     
     # Relaciones
-    id_rol = models.ForeignKey(Roles, on_delete=models.PROTECT)
-    id_turno = models.ForeignKey(Turnos, on_delete=models.SET_NULL, null=True, blank=True)
+    id_rol = models.ForeignKey(Roles, on_delete=models.PROTECT, db_column='id_rol')
+    id_turno = models.ForeignKey(Turnos, on_delete=models.SET_NULL, null=True, blank=True, db_column='id_turno')
     
     # Campos de control
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
-    # ❌ ELIMINADO: is_staff = models.BooleanField(default=False)
     
     # Campos para authentication
     USERNAME_FIELD = 'correo_electronico_usuario'
@@ -101,14 +120,14 @@ class Usuario(AbstractBaseUser):
         ¿El usuario tiene un permiso específico?
         Solo los administradores tienen todos los permisos
         """
-        return self.id_rol.nombre_rol == 'Administrador'
+        return self.id_rol_id == 1  # ID 1 = Administrador
     
     def has_module_perms(self, app_label):
         """
         ¿El usuario tiene permisos para ver la app en el admin?
         Solo los administradores pueden acceder al admin
         """
-        return self.id_rol.nombre_rol == 'Administrador'
+        return self.id_rol_id == 1  # ID 1 = Administrador
     
     # ✅ PROPERTY PARA COMPATIBILIDAD CON DJANGO ADMIN
     @property
@@ -117,7 +136,7 @@ class Usuario(AbstractBaseUser):
         Django admin usa esta propiedad para determinar si puede acceder al admin
         Solo los administradores son considerados "staff"
         """
-        return self.id_rol.nombre_rol == 'Administrador'
+        return self.id_rol_id == 1  # ID 1 = Administrador
     
     def __str__(self):
         return f"{self.nombre_usuario} {self.apellido_pat_usuario} - {self.rut_usuario}"
@@ -128,306 +147,343 @@ class Usuario(AbstractBaseUser):
     def get_short_name(self):
         return self.nombre_usuario
     
-    @property
-    def es_conductor(self):
-        return self.id_rol.nombre_rol in ['Conductor', 'Inspector']
-    
-    @property
-    def es_administrador(self):
-        return self.id_rol.nombre_rol == 'Administrador'
-    
-    @property
-    def es_operador(self):
-        return self.id_rol.nombre_rol == 'Operador'
-    
-    @property
-    def es_ciudadano(self):
-        return self.id_rol.nombre_rol == 'Ciudadano'
-    
     class Meta:
+        db_table = 'Seguridad_usuario'
         verbose_name = 'Usuario'
         verbose_name_plural = 'Usuarios'
 
 class TiposVehiculos(models.Model):
     id_tipo_vehiculo = models.AutoField(primary_key=True)
-    nombre_tipo_vehiculo = models.CharField(max_length=50, unique=True)
-    
-    def __str__(self):
-        return self.nombre_tipo_vehiculo
-    
+    nombre_tipo_vehiculo = models.CharField(max_length=100, unique=True)
+
     class Meta:
+        db_table = 'Seguridad_tiposvehiculos'
         verbose_name = 'Tipo de Vehículo'
         verbose_name_plural = 'Tipos de Vehículos'
 
+    def __str__(self):
+        return self.nombre_tipo_vehiculo
+
 class Vehiculos(models.Model):
-    ESTADOS_VEHICULO = [
-        ('Disponible', 'Disponible'),
-        ('En mantención', 'En mantención'),
-        ('Asignado', 'Asignado'),
-        ('Inactivo', 'Inactivo'),
-    ]
-    
     id_vehiculo = models.AutoField(primary_key=True)
     patente_vehiculo = models.CharField(max_length=10, unique=True)
     marca_vehiculo = models.CharField(max_length=50)
     modelo_vehiculo = models.CharField(max_length=50)
     codigo_vehiculo = models.CharField(max_length=10)
-    id_tipo_vehiculo = models.ForeignKey(TiposVehiculos, on_delete=models.PROTECT)
-    estado_vehiculo = models.CharField(max_length=20, choices=ESTADOS_VEHICULO, default='Disponible')
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    
-    def __str__(self):
-        return f"{self.patente_vehiculo} - {self.marca_vehiculo} {self.modelo_vehiculo}"
-    
+    estado_vehiculo = models.CharField(max_length=20)
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    id_tipo_vehiculo = models.ForeignKey(TiposVehiculos, on_delete=models.PROTECT, db_column='id_tipo_vehiculo_id')
+
     class Meta:
+        db_table = 'Seguridad_vehiculos'
         verbose_name = 'Vehículo'
         verbose_name_plural = 'Vehículos'
 
-class AsignacionesVehiculos(models.Model):
-    id_asignacion_vehiculo = models.AutoField(primary_key=True)
-    id_conductor = models.ForeignKey(
-        Usuario, 
-        on_delete=models.PROTECT,
-        limit_choices_to={'id_rol__nombre_rol__in': ['Conductor', 'Inspector']}
-    )
-    id_vehiculo = models.ForeignKey(Vehiculos, on_delete=models.PROTECT)
-    id_turno = models.ForeignKey(Turnos, on_delete=models.PROTECT)
-    fecha_asignacion = models.DateField()
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    
     def __str__(self):
-        return f"{self.id_conductor} - {self.id_vehiculo} - {self.fecha_asignacion}"
-    
+        return f"{self.patente_vehiculo} - {self.marca_vehiculo} {self.modelo_vehiculo}"
+
+class Radio(models.Model):
+    id_radio = models.AutoField(primary_key=True)
+    nombre_radio = models.CharField(max_length=50, unique=True)
+    codigo_radio = models.CharField(max_length=20, unique=True)
+    descripcion_radio = models.TextField()
+    estado_radio = models.CharField(max_length=20)
+    fecha_creacion_radio = models.DateTimeField(default=timezone.now)
+
     class Meta:
+        db_table = 'Seguridad_radio'
+        verbose_name = 'Radio'
+        verbose_name_plural = 'Radios'
+
+    def __str__(self):
+        return self.nombre_radio
+
+class AsignacionRadio(models.Model):
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_radio = models.ForeignKey(Radio, on_delete=models.CASCADE)
+    fecha_asignacion = models.DateField()
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_devolucion = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'Seguridad_asignacion_radio'
+        verbose_name = 'Asignación de Radio'
+        verbose_name_plural = 'Asignaciones de Radio'
+        unique_together = (('id_usuario', 'id_radio', 'fecha_asignacion'),)
+
+    def __str__(self):
+        return f"Radio {self.id_radio} - {self.id_usuario} - {self.fecha_asignacion}"
+
+class AsignacionVehiculo(models.Model):
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    id_vehiculo = models.ForeignKey(Vehiculos, on_delete=models.CASCADE)
+    fecha_asignacion = models.DateField()
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'Seguridad_asignacion_vehiculo'
         verbose_name = 'Asignación de Vehículo'
-        verbose_name_plural = 'Asignaciones de Vehículos'
-        unique_together = ['id_conductor', 'id_vehiculo', 'fecha_asignacion']
+        verbose_name_plural = 'Asignaciones de Vehículo'
+        unique_together = (('id_usuario', 'id_vehiculo', 'fecha_asignacion'),)
+
+    def __str__(self):
+        return f"Vehículo {self.id_vehiculo} - {self.id_usuario} - {self.fecha_asignacion}"
 
 class FamiliaDenuncia(models.Model):
     id_familia_denuncia = models.AutoField(primary_key=True)
     nombre_familia_denuncia = models.CharField(max_length=100, unique=True)
     codigo_familia = models.CharField(max_length=10, unique=True)
-    
-    def __str__(self):
-        return f"{self.codigo_familia} - {self.nombre_familia_denuncia}"
-    
+
     class Meta:
+        db_table = 'Seguridad_familiadenuncia'
         verbose_name = 'Familia de Denuncia'
         verbose_name_plural = 'Familias de Denuncia'
+
+    def __str__(self):
+        return self.nombre_familia_denuncia
 
 class GrupoDenuncia(models.Model):
     id_grupo_denuncia = models.AutoField(primary_key=True)
     nombre_grupo_denuncia = models.CharField(max_length=100)
     codigo_grupo = models.CharField(max_length=10)
-    id_familia_denuncia = models.ForeignKey(FamiliaDenuncia, on_delete=models.PROTECT)
-    
-    def __str__(self):
-        return f"{self.codigo_grupo} - {self.nombre_grupo_denuncia}"
-    
+    id_familia_denuncia = models.ForeignKey(FamiliaDenuncia, on_delete=models.PROTECT, db_column='id_familia_denuncia_id')
+
     class Meta:
+        db_table = 'Seguridad_grupodenuncia'
         verbose_name = 'Grupo de Denuncia'
         verbose_name_plural = 'Grupos de Denuncia'
-        unique_together = ['id_familia_denuncia', 'codigo_grupo']
+        unique_together = (('id_familia_denuncia', 'codigo_grupo'),)
+
+    def __str__(self):
+        return self.nombre_grupo_denuncia
 
 class SubgrupoDenuncia(models.Model):
     id_subgrupo_denuncia = models.AutoField(primary_key=True)
     nombre_subgrupo_denuncia = models.CharField(max_length=100)
     codigo_subgrupo = models.CharField(max_length=10)
-    id_grupo_denuncia = models.ForeignKey(GrupoDenuncia, on_delete=models.PROTECT)
-    
-    def __str__(self):
-        return f"{self.codigo_subgrupo} - {self.nombre_subgrupo_denuncia}"
-    
+    id_grupo_denuncia = models.ForeignKey(GrupoDenuncia, on_delete=models.PROTECT, db_column='id_grupo_denuncia_id')
+
     class Meta:
+        db_table = 'Seguridad_subgrupodenuncia'
         verbose_name = 'Subgrupo de Denuncia'
         verbose_name_plural = 'Subgrupos de Denuncia'
-        unique_together = ['id_grupo_denuncia', 'codigo_subgrupo']
+        unique_together = (('id_grupo_denuncia', 'codigo_subgrupo'),)
+
+    def __str__(self):
+        return self.nombre_subgrupo_denuncia
 
 class Requerimiento(models.Model):
-    CLASIFICACION_CHOICES = [
-        ('Baja', 'Baja'),
-        ('Media', 'Media'),
-        ('Alta', 'Alta'),
-    ]
-    
     id_requerimiento = models.AutoField(primary_key=True)
     nombre_requerimiento = models.CharField(max_length=200)
     codigo_requerimiento = models.CharField(max_length=10)
-    id_subgrupo_denuncia = models.ForeignKey(SubgrupoDenuncia, on_delete=models.PROTECT)
-    clasificacion_requerimiento = models.CharField(max_length=10, choices=CLASIFICACION_CHOICES)
+    clasificacion_requerimiento = models.CharField(max_length=10)
     descripcion_requerimiento = models.TextField()
-    
-    def __str__(self):
-        return f"{self.codigo_requerimiento} - {self.nombre_requerimiento} ({self.clasificacion_requerimiento})"
-    
+    id_subgrupo_denuncia = models.ForeignKey(SubgrupoDenuncia, on_delete=models.PROTECT, db_column='id_subgrupo_denuncia_id')
+
     class Meta:
+        db_table = 'Seguridad_requerimiento'
         verbose_name = 'Requerimiento'
         verbose_name_plural = 'Requerimientos'
-        unique_together = ['id_subgrupo_denuncia', 'codigo_requerimiento']
+        unique_together = (('id_subgrupo_denuncia', 'codigo_requerimiento'),)
+
+    def __str__(self):
+        return self.nombre_requerimiento
 
 class ServiciosEmergencia(models.Model):
     id_servicio = models.AutoField(primary_key=True)
     nombre_servicio = models.CharField(max_length=100, unique=True)
     codigo_servicio = models.CharField(max_length=10, unique=True)
-    
-    def __str__(self):
-        return f"{self.codigo_servicio} - {self.nombre_servicio}"
-    
+
     class Meta:
+        db_table = 'Seguridad_serviciosemergencia'
         verbose_name = 'Servicio de Emergencia'
         verbose_name_plural = 'Servicios de Emergencia'
 
-class VillasCuadrantes(models.Model):
-    id_villa_cuadrante = models.AutoField(primary_key=True)
-    nombre_villa = models.CharField(max_length=100)
-    cuadrante = models.CharField(max_length=10)
-    direccion_referencia = models.CharField(max_length=200, blank=True, null=True)
-    
     def __str__(self):
-        return f"{self.nombre_villa} - Cuadrante {self.cuadrante}"
-    
-    class Meta:
-        verbose_name = 'Villa y Cuadrante'
-        verbose_name_plural = 'Villas y Cuadrantes'
-        unique_together = ['nombre_villa', 'cuadrante']
+        return self.nombre_servicio
 
 class Denuncia(models.Model):
-    ESTADO_DENUNCIA_CHOICES = [
-        ('Recibido', 'Recibido'),
-        ('En proceso', 'En proceso'),
-        ('Completado', 'Completado'),
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('en_proceso', 'En Proceso'),
+        ('completada', 'Completada'),
+        ('cancelada', 'Cancelada'),
     ]
-    
+
     id_denuncia = models.AutoField(primary_key=True)
-    
-    # Operadores
-    id_operador1 = models.ForeignKey(
-        Usuario, 
-        on_delete=models.PROTECT,
-        related_name='denuncias_operador1',
-        limit_choices_to={'id_rol__nombre_rol': 'Operador'}
-    )
-    id_operador2 = models.ForeignKey(
-        Usuario, 
-        on_delete=models.PROTECT,
-        related_name='denuncias_operador2',
-        limit_choices_to={'id_rol__nombre_rol': 'Operador'},
-        null=True,
-        blank=True
-    )
-    
-    # Tiempos
     hora_denuncia = models.DateTimeField()
     fecha_denuncia = models.DateField()
-    
-    # Solicitante
-    id_solicitante = models.ForeignKey(
-        Usuario, 
-        on_delete=models.PROTECT,
-        related_name='denuncias_solicitante'
-    )
-    
-    # Ubicación
-    direccion = models.CharField(max_length=200)
-    id_villa_cuadrante = models.ForeignKey(VillasCuadrantes, on_delete=models.PROTECT)
-    
-    # Detalles de denuncia
-    id_requerimiento = models.ForeignKey(Requerimiento, on_delete=models.PROTECT)
+    direccion_denuncia = models.CharField(max_length=100)
+    direccion_denuncia_1 = models.CharField(max_length=225)
+    cuadrante_denuncia = models.IntegerField()
     detalle_denuncia = models.TextField()
-    
-    # Información adicional
-    visibilidad_camaras_denuncia = models.BooleanField(default=False)
-    id_turno = models.ForeignKey(Turnos, on_delete=models.PROTECT)
-    
-    # Tiempos del procedimiento
-    hora_llegada_movil = models.DateTimeField(null=True, blank=True)
+    visibilidad_camaras_denuncia = models.BooleanField()
+    hora_llegada_movil_denuncia = models.DateTimeField()
     labor_realizada_denuncia = models.TextField()
     termino_evento = models.DateTimeField(null=True, blank=True)
-    
-    # Cálculos automáticos
-    tiempo_total_procedimiento_minutos = models.IntegerField(null=True, blank=True)
-    estado_denuncia = models.CharField(
-        max_length=20, 
-        choices=ESTADO_DENUNCIA_CHOICES, 
-        default='Recibido'
-    )
-    
-    # Auditoría
-    fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_actualizacion = models.DateTimeField(auto_now=True)
-    
-    def save(self, *args, **kwargs):
-        # Calcular tiempo total si hay hora de llegada y término
-        if self.hora_llegada_movil and self.termino_evento:
-            diferencia = self.termino_evento - self.hora_llegada_movil
-            self.tiempo_total_procedimiento_minutos = int(diferencia.total_seconds() / 60)
-        super().save(*args, **kwargs)
-    
-    def __str__(self):
-        return f"Denuncia #{self.id_denuncia} - {self.id_solicitante} - {self.fecha_denuncia}"
-    
-    @property
-    def familia_denuncia(self):
-        return self.id_requerimiento.id_subgrupo_denuncia.id_grupo_denuncia.id_familia_denuncia.nombre_familia_denuncia
-    
+    tiempo_total_procedimiento_denuncia = models.IntegerField(null=True, blank=True)
+    estado_denuncia = models.CharField(max_length=100, choices=ESTADO_CHOICES)
+    fecha_creacion_denuncia = models.DateTimeField(default=timezone.now)
+    fecha_actualizacion_denuncia = models.DateTimeField(auto_now=True)
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, related_name='denuncias_registradas')
+    id_ciudadano = models.ForeignKey(Ciudadano, on_delete=models.PROTECT)
+    id_requerimiento = models.ForeignKey(Requerimiento, on_delete=models.PROTECT, db_column='id_requerimiento_denuncia')
+
     class Meta:
+        db_table = 'Seguridad_denuncia'
         verbose_name = 'Denuncia'
         verbose_name_plural = 'Denuncias'
 
-class DerivacionesDenuncia(models.Model):
-    TIPO_DERIVACION_CHOICES = [
-        ('Primaria', 'Derivación Primaria'),
-        ('Adicional', 'Derivación Adicional'),
-    ]
-    
-    id_derivacion = models.AutoField(primary_key=True)
-    id_denuncia = models.ForeignKey(Denuncia, on_delete=models.CASCADE)
-    id_servicio = models.ForeignKey(
-        ServiciosEmergencia, 
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True
-    )
-    id_conductor = models.ForeignKey(
-        Usuario,
-        on_delete=models.PROTECT,
-        limit_choices_to={'id_rol__nombre_rol__in': ['Conductor', 'Inspector']},
-        null=True,
-        blank=True
-    )
-    tipo_derivacion = models.CharField(
-        max_length=20, 
-        choices=TIPO_DERIVACION_CHOICES, 
-        default='Primaria'
-    )
-    hora_derivacion = models.DateTimeField()
-    observaciones = models.CharField(max_length=500, blank=True, null=True)
-    
     def __str__(self):
-        servicio = self.id_servicio.nombre_servicio if self.id_servicio else self.id_conductor
-        return f"Derivación {self.tipo_derivacion} - {servicio} - Denuncia #{self.id_denuncia.id_denuncia}"
-    
-    class Meta:
-        verbose_name = 'Derivación de Denuncia'
-        verbose_name_plural = 'Derivaciones de Denuncias'
+        return f"Denuncia {self.id_denuncia} - {self.fecha_denuncia}"
 
 class MovilesDenuncia(models.Model):
     id_movil_denuncia = models.AutoField(primary_key=True)
-    id_denuncia = models.ForeignKey(Denuncia, on_delete=models.CASCADE)
-    id_conductor = models.ForeignKey(
-        Usuario, 
-        on_delete=models.PROTECT,
-        limit_choices_to={'id_rol__nombre_rol__in': ['Conductor', 'Inspector']}
-    )
-    id_vehiculo = models.ForeignKey(Vehiculos, on_delete=models.PROTECT)
-    orden_asignacion = models.IntegerField(choices=[(1, '1'), (2, '2'), (3, '3')])
+    orden_asignacion = models.IntegerField()
     hora_asignacion = models.DateTimeField()
     observaciones = models.CharField(max_length=500, blank=True, null=True)
-    
-    def __str__(self):
-        return f"Móvil {self.orden_asignacion} - {self.id_conductor} - Denuncia #{self.id_denuncia.id_denuncia}"
-    
+    id_denuncia = models.ForeignKey(Denuncia, on_delete=models.CASCADE, db_column='id_denuncia_id')
+    id_vehiculo = models.ForeignKey(Vehiculos, on_delete=models.PROTECT, db_column='id_vehiculo_id')
+    id_conductor = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column='id_conductor_id')
+
     class Meta:
-        verbose_name = 'Móvil en Denuncia'
-        verbose_name_plural = 'Móviles en Denuncias'
-        unique_together = ['id_denuncia', 'orden_asignacion']
+        db_table = 'Seguridad_movilesdenuncia'
+        verbose_name = 'Móvil de Denuncia'
+        verbose_name_plural = 'Móviles de Denuncia'
+        unique_together = (('id_denuncia', 'orden_asignacion'),)
+
+    def __str__(self):
+        return f"Móvil {self.orden_asignacion} - Denuncia {self.id_denuncia_id}"
+
+class DerivacionesDenuncia(models.Model):
+    TIPO_DERIVACION_CHOICES = [
+        ('emergencia', 'Emergencia'),
+        ('especializada', 'Especializada'),
+        ('seguimiento', 'Seguimiento'),
+    ]
+
+    id_derivacion = models.AutoField(primary_key=True)
+    tipo_derivacion = models.CharField(max_length=20, choices=TIPO_DERIVACION_CHOICES)
+    hora_derivacion = models.DateTimeField()
+    observaciones = models.CharField(max_length=500, blank=True, null=True)
+    id_denuncia = models.ForeignKey(Denuncia, on_delete=models.CASCADE, db_column='id_denuncia_id')
+    id_servicio = models.ForeignKey(ServiciosEmergencia, on_delete=models.PROTECT, null=True, blank=True, db_column='id_servicio_id')
+    id_conductor = models.ForeignKey(Usuario, on_delete=models.PROTECT, null=True, blank=True, db_column='id_conductor_id')
+
+    class Meta:
+        db_table = 'Seguridad_derivacionesdenuncia'
+        verbose_name = 'Derivación de Denuncia'
+        verbose_name_plural = 'Derivaciones de Denuncia'
+
+    def __str__(self):
+        return f"Derivación {self.id_derivacion} - {self.tipo_derivacion}"
+
+class AsignacionDerivacionEmergencia(models.Model):
+    id_servicio = models.ForeignKey(ServiciosEmergencia, on_delete=models.CASCADE)
+    id_derivacion = models.ForeignKey(DerivacionesDenuncia, on_delete=models.CASCADE)
+    fecha_asignacion = models.DateField()
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = 'Seguridad_asignacion_derivacion_emergencia'
+        verbose_name = 'Asignación de Derivación de Emergencia'
+        verbose_name_plural = 'Asignaciones de Derivación de Emergencia'
+        unique_together = (('id_servicio', 'id_derivacion', 'fecha_asignacion'),)
+
+    def __str__(self):
+        return f"Derivación {self.id_derivacion} - Servicio {self.id_servicio}"
+
+class SolicitudCiudadano(models.Model):
+    ESTADO_SOLICITUD_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('en_revision', 'En Revisión'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+    ]
+
+    id_solicitud = models.AutoField(primary_key=True)
+    tipo_solicitante = models.CharField(max_length=100)
+    nombre_solicitante = models.CharField(max_length=225)
+    telefono_solicitante = models.CharField(max_length=20, blank=True, null=True)
+    correo_solicitante = models.CharField(max_length=225)
+    rut_solicitante = models.CharField(max_length=20)
+    direccion_solicitante = models.TextField()
+    detalle_solicitud = models.TextField()
+    estado_solicitud = models.CharField(max_length=100, choices=ESTADO_SOLICITUD_CHOICES)
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    id_ciudadano = models.ForeignKey(Ciudadano, on_delete=models.CASCADE, db_column='id_ciudadano_id')
+
+    class Meta:
+        db_table = 'Seguridad_solicitud_ciudadano'
+        verbose_name = 'Solicitud de Ciudadano'
+        verbose_name_plural = 'Solicitudes de Ciudadanos'
+
+    def __str__(self):
+        return f"Solicitud {self.id_solicitud} - {self.nombre_solicitante}"
+
+class SolicitudTrabajador(models.Model):
+    ESTADO_SOLICITUD_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('en_revision', 'En Revisión'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+    ]
+
+    id_solicitud_trabajador = models.AutoField(primary_key=True)
+    rol_solicitante = models.CharField(max_length=100)
+    nombre_solicitante_trabajador = models.CharField(max_length=225)
+    telefono_solicitante_trabajador = models.CharField(max_length=20, blank=True, null=True)
+    correo_solicitante_trabajador = models.CharField(max_length=225)
+    rut_solicitante_trabajador = models.CharField(max_length=20)
+    direccion_solicitante_trabajador = models.TextField()
+    detalle_solicitud_trabajador = models.TextField()
+    estado_solicitud_trabajador = models.CharField(max_length=100, choices=ESTADO_SOLICITUD_CHOICES)
+    fecha_creacion_trabajador = models.DateTimeField(default=timezone.now)
+    turno_solicitante_trabajador = models.DateField()
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, db_column='id_usuario_id')
+
+    class Meta:
+        db_table = 'Seguridad_solicitud_trabajador'
+        verbose_name = 'Solicitud de Trabajador'
+        verbose_name_plural = 'Solicitudes de Trabajadores'
+
+    def __str__(self):
+        return f"Solicitud Trabajador {self.id_solicitud_trabajador} - {self.nombre_solicitante_trabajador}"
+
+class DocumentoSolicitud(models.Model):
+    id_documento = models.AutoField(primary_key=True)
+    nombre_archivo = models.CharField(max_length=225)
+    tipo_archivo = models.CharField(max_length=50)
+    ruta_archivo = models.CharField(max_length=500)
+    tamaño_archivo = models.IntegerField(null=True, blank=True)
+    fecha_subida = models.DateTimeField(default=timezone.now)
+    id_solicitud = models.ForeignKey(SolicitudCiudadano, on_delete=models.CASCADE, db_column='id_solicitud_id')
+
+    class Meta:
+        db_table = 'Seguridad_documento_solicitud'
+        verbose_name = 'Documento de Solicitud'
+        verbose_name_plural = 'Documentos de Solicitud'
+
+    def __str__(self):
+        return self.nombre_archivo
+
+class Fiscalizacion(models.Model):
+    id_fiscalizacion = models.AutoField(primary_key=True)
+    hora_fiscalizacion = models.DateTimeField()
+    tipo_fiscalizacion = models.CharField(max_length=100)
+    detalle_fiscalizacion = models.TextField()
+    nombre_conductor = models.CharField(max_length=225)
+    apellido_conductor = models.CharField(max_length=225)
+    rut_conductor = models.CharField(max_length=20)
+    patente_vehiculo_fiscalizacion = models.CharField(max_length=20)
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    id_usuario = models.ForeignKey(Usuario, on_delete=models.PROTECT, db_column='id_usuario_id')
+
+    class Meta:
+        db_table = 'Seguridad_fiscalizacion'
+        verbose_name = 'Fiscalización'
+        verbose_name_plural = 'Fiscalizaciones'
+
+    def __str__(self):
+        return f"Fiscalización {self.id_fiscalizacion} - {self.patente_vehiculo_fiscalizacion}"
