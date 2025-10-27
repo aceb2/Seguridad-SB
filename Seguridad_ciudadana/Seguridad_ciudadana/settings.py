@@ -1,19 +1,28 @@
 from pathlib import Path
 import os
 from datetime import timedelta
+from decouple import config
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Ruta del archivo JSON (backup de datos)
 JSON_FILE_PATH = os.path.join(BASE_DIR, 'DB', 'data.json')
 
-SECRET_KEY = 'django-insecure-f(tp3foo&9y!)2n_a9vz+%als((omf9rulg%6j8ek1f4se@h3f'
+# SECRET_KEY desde variables de entorno (más seguro)
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-f(tp3foo&9y!)2n_a9vz+%als((omf9rulg%6j8ek1f4se@h3f')
 
 AUTH_USER_MODEL = 'Seguridad.Usuario' 
 
-DEBUG = True
+# DEBUG desde variables de entorno
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["*"]  
+ALLOWED_HOSTS = [
+    '.railway.app',
+    'localhost',
+    '127.0.0.1',
+    '*'
+]
 
 # ---------------- APPS ----------------
 INSTALLED_APPS = [
@@ -36,6 +45,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # ¡AGREGADO!
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -64,19 +74,30 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Seguridad_ciudadana.wsgi.application'
 
 # ---------------- DATABASE ----------------
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres', 
-        'USER': 'postgres', 
-        'PASSWORD': 'seguridad123456', 
-        'HOST': 'db.awmshunqvwnwpaicyrkf.supabase.co',  
-        'PORT': '5432',  
-        'OPTIONS': {
-            'sslmode': 'require', 
-        },
+# Configuración para Railway (usa DATABASE_URL automática) o tu Supabase
+if config('DATABASE_URL', default=''):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
+else:
+    # Tu configuración actual de Supabase
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='postgres'),
+            'USER': config('DB_USER', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default='seguridad123456'),
+            'HOST': config('DB_HOST', default='db.awmshunqvwnwpaicyrkf.supabase.co'),
+            'PORT': config('DB_PORT', default='5432'),
+            'OPTIONS': {
+                'sslmode': 'require',
+            },
+        }
+    }
 
 # ---------------- PASSWORDS ----------------
 AUTH_PASSWORD_VALIDATORS = [
@@ -93,8 +114,12 @@ USE_I18N = True
 USE_TZ = True
 
 # ---------------- STATIC ----------------
-STATIC_URL = '/Static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ¡AGREGADO!
+
+# WhiteNoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -116,6 +141,13 @@ SIMPLE_JWT = {
 }
 
 # ---------------- CORS ----------------
-CORS_ALLOW_ALL_ORIGINS = True  # en desarrollo
-# En producción mejor:
-# CORS_ALLOWED_ORIGINS = ["http://localhost:8100", "http://localhost:4200"]
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "https://tu-frontend.vercel.app",  # tu frontend en producción
+        "https://tu-app.railway.app",      # tu mismo dominio
+    ]
+
+# También puedes mantenerlo simple para desarrollo:
+CORS_ALLOW_ALL_ORIGINS = True

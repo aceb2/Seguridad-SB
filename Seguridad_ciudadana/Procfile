@@ -1,0 +1,2 @@
+web: python manage.py migrate && gunicorn Seguridad_ciudadana.wsgi
+release: python manage.py migrate
