@@ -84,21 +84,21 @@ if config('DATABASE_URL', default=''):
         )
     }
 else:
-    # Tu configuración actual de Supabase
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': config('DB_NAME', default='postgres'),
-            'USER': config('DB_USER', default='postgres'),
+            'USER': config('DB_USER', default='postgres.awmshunqvwnwpaicyrkf'),
             'PASSWORD': config('DB_PASSWORD', default='seguridad123456'),
-            'HOST': config('DB_HOST', default='db.awmshunqvwnwpaicyrkf.supabase.co'),
-            'PORT': config('DB_PORT', default='5432'),
+            'HOST': config('DB_HOST', default='aws-1-us-east-2.pooler.supabase.com'),
+            'PORT': config('DB_PORT', default='6544'),
             'OPTIONS': {
                 'sslmode': 'require',
                 'options': '-c inet_type=ipv4',
             },
         }
     }
+
 
 # ---------------- PASSWORDS ----------------
 AUTH_PASSWORD_VALIDATORS = [
