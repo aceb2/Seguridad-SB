@@ -91,7 +91,7 @@ else:
             'USER': config('DB_USER', default='postgres.awmshunqvwnwpaicyrkf'),
             'PASSWORD': config('DB_PASSWORD', default='seguridad123456'),
             'HOST': config('DB_HOST', default='aws-1-us-east-2.pooler.supabase.com'),
-            'PORT': config('DB_PORT', default='6544'),
+            'PORT': config('DB_PORT', default='5432'),
             'OPTIONS': {
                 'sslmode': 'require',
                 'options': '-c inet_type=ipv4',
