@@ -37,4 +37,7 @@ urlpatterns = [
     path('api/ionic/denuncias/', views.api_denuncias_ionic, name='api_denuncias_ionic'),
     path('api/ionic/roles/', views.api_roles_ionic, name='api_roles_ionic'),
     path('api/ionic/turnos/', views.api_turnos_ionic, name='api_turnos_ionic'),
+    
+    
+    path('debug/templates/', views.debug_templates, name='debug_templates'),
 ]

@@ -1225,3 +1225,38 @@ def api_turnos_ionic(request):
         return JsonResponse({'success': True, 'turnos': data})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    
+@login_required
+def debug_templates(request):
+    """Debug: listar templates disponibles"""
+    import os
+    from django.conf import settings
+    
+    template_dirs = []
+    templates_found = []
+    
+    # Buscar en todos los directorios de templates
+    for template_dir in settings.TEMPLATES[0]['DIRS']:
+        template_dirs.append(str(template_dir))
+        if os.path.exists(template_dir):
+            for root, dirs, files in os.walk(template_dir):
+                for file in files:
+                    if file.endswith('.html'):
+                        rel_path = os.path.relpath(os.path.join(root, file), template_dir)
+                        templates_found.append(rel_path)
+    
+    html = f"""
+    <h1>🔍 DEBUG - Templates en Render</h1>
+    <h2>Directorios de templates configurados:</h2>
+    <ul>
+        {"".join([f"<li>{d}</li>" for d in template_dirs])}
+    </ul>
+    <h2>Templates encontrados ({len(templates_found)}):</h2>
+    <ul>
+        {"".join([f"<li>{t}</li>" for t in sorted(templates_found)])}
+    </ul>
+    <h2>BASE_DIR: {settings.BASE_DIR}</h2>
+    <h2>DEBUG: {settings.DEBUG}</h2>
+    """
+    return HttpResponse(html)
