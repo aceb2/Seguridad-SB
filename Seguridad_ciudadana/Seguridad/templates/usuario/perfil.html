@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="{% static 'CSS/Usuario/inicio_sesion.css' %}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="icon" type="image/png" href="{% static 'Img/logo_san_bernardo2.png' %}">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <script src="https://kit.fontawesome.com/6a284d15f6.js" crossorigin="anonymous"></script>
+  <link rel="icon" type="image/x-icon" class="fa-solid fa-shield-halved">
+  <title>Inicio de Sesión</title>
+</head>
+
+<body>
+
+  <nav id="navbar" class="navbar">
+
+    <!-- Solo el título centrado -->
+    <h2 class="titulo-pagina">Rutas Seguridad Ciudadana "San Bernardo"</h2>
+
+  </nav>
+
+
+  <!-- Bloque con el formulario de inicio de sesion -->
+  <div class="login-container">
+    <div class="login-header">
+      <h1>🔐 Inicio de Sesión</h1>
+      <p>Sistema de Seguridad Ciudadana - Personal Autorizado</p>
+    </div>
+
+    <form id="login-form" method="POST" action="{% url 'login' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label>📧 Correo Electrónico</label>
+        <input type="email" name="correo_electronico_usuario" required placeholder="usuario@seguridad.cl"
+          value="{{ request.POST.correo_electronico_usuario|default:'' }}" id="email-input">
+      </div>
+
+      <div class="form-group">
+        <label>🔒 Contraseña</label>
+        <input type="password" name="password" required placeholder="Ingrese su contraseña" id="password-input">
+      </div>
+
+      <button type="submit" id="submit-btn">🚀 Iniciar Sesión</button>
+    </form>
+
+    <div class="login-footer">
+      <p><strong>Acceso restringido:</strong> Solo para Administradores y Operadores de la municipalidad de San
+        Bernardo.</p>
+    </div>
+
+  </div>
+
+  <!-- Ejecución de Scripts -->
+  <script src="{% static 'JavaScript/mapa.js' %}"></script>
+  <script src="{% static 'JavaScript/redirecciones.js' %}"></script>
+
+  <!-- Script para SweetAlert -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // ✅ SOLO MOSTRAR ERRORES EN LOGIN, NO BIENVENIDAS
+      {% if alert_type %}
+      const alertType = '{{ alert_type|escapejs }}';
+      const alertTitle = '{{ alert_title|escapejs }}';
+      const alertMessage = '{{ alert_message|escapejs }}';
+
+      Swal.fire({
+        icon: alertType,
+        title: alertTitle,
+        text: alertMessage,
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: alertType === 'success' ? '#28a745' : '#dc3545',
+        background: '#1e1e1e',
+        color: 'white',
+        timer: 5000,
+        timerProgressBar: true
+      });
+      {% endif %}
+
+      // Validación del formulario
+      if (loginForm) {
+        loginForm.addEventListener('submit', function (e) {
+          const email = document.getElementById('email-input').value;
+          const password = document.getElementById('password-input').value;
+
+          // Validación básica
+          if (!email || !password) {
+            e.preventDefault();
+            Swal.fire({
+              icon: 'warning',
+              title: 'Campos incompletos ⚠️',
+              text: 'Por favor complete todos los campos',
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#ffc107',
+              background: '#1e1e1e',
+              color: 'white'
+            });
+            return;
+          }
+
+          // Mostrar loading
+          submitBtn.innerHTML = '⏳ Validando credenciales...';
+          submitBtn.disabled = true;
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

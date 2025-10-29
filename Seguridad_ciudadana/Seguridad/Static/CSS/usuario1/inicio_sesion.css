@@ -1,0 +1,337 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+.navbar {
+    color: #ffffff;
+    width: 100%;
+    display: flex;
+    background-color: #009FE3;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+    border-bottom: 5px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    padding: 15px 25px;
+}
+
+.titulo-pagina {
+    font-size: 2.5rem;
+    font-weight: 500;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background-color: rgb(229, 242, 236);
+    position: relative;
+    font-family: Arial, sans-serif;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;  /* Tamaño fijo */
+    height: 400px;
+    background-image: url('../../Img/san_bernardo_fondo.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.1;  /* Más transparente */
+    z-index: -1;
+    pointer-events: none;
+}
+.login-container {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    margin: auto;
+
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.login-header h1 {
+    color: #252525;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.login-header p {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.login-icon {
+    font-size: 48px;
+    color: #007bff;
+    margin-bottom: 20px;
+}
+
+.login-form {
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 10px;
+    color: #252525;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #007bff;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #999;
+}
+
+.input-icon {
+    position: relative;
+}
+
+.input-icon i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 18px;
+}
+
+.input-icon input {
+    padding-left: 45px;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.login-btn i {
+    margin-right: 10px;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid #e9ecef;
+}
+
+.login-footer p {
+    color: #666;
+    font-size: 15px;
+    margin-bottom: 15px;
+}
+
+.register-link {
+    display: inline-block;
+    padding: 12px 25px;
+    background: #28a745;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.register-link:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.message-container {
+    margin: 20px 0;
+    min-height: 50px;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 14px;
+    padding: 12px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: none;
+}
+
+.success-message {
+    color: #28a745;
+    font-size: 14px;
+    padding: 12px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container {
+        padding: 30px 25px;
+        margin: 15px;
+    }
+
+    .login-header h1 {
+        font-size: 28px;
+    }
+
+    .login-header p {
+        font-size: 15px;
+    }
+
+    .form-group input {
+        padding: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        padding: 25px 20px;
+        margin: 10px;
+    }
+
+    .login-header h1 {
+        font-size: 24px;
+    }
+
+    .login-icon {
+        font-size: 40px;
+    }
+
+    .login-btn {
+        padding: 14px;
+        font-size: 16px;
+    }
+}
+
+/* Animaciones */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-container {
+    animation: slideIn 0.6s ease;
+}
+
+/* Efectos de focus mejorados */
+.form-group input:focus {
+    transform: translateY(-2px);
+}
+
+/* Loading state */
+.login-btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.login-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Estilos para el botón de loading */
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Mejoras visuales para el formulario */
+.login-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.form-group input:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
