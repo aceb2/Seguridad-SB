@@ -136,6 +136,7 @@ def admin_dashboard(request):
     }
     return render(request, 'Usuario/Admin.html', context)
 
+@login_required
 def admin_requerimientos(request):
     """Página principal de gestión de requerimientos"""
     if not request.user.is_authenticated or request.user.id_rol.nombre_rol.lower() != 'administrador':
@@ -153,7 +154,9 @@ def admin_requerimientos(request):
         'subgrupos': subgrupos,
         'requerimientos': requerimientos,
     }
-    return render(request, 'CRUD/Admin/requerimientos.html', context)
+    
+    # ✅ CAMBIADO: Nueva ruta en carpeta Usuario
+    return render(request, 'Usuario/requerimientos.html', context)
 
 # ✅ API PARA FAMILIAS (CORREGIDA SEGÚN BD REAL)
 @csrf_exempt
