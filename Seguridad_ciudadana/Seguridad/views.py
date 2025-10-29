@@ -2,7 +2,7 @@ from django.contrib import messages # type: ignore
 from django.shortcuts import render, redirect, get_object_or_404 # type: ignore
 from django.contrib.auth import login, authenticate, logout # type: ignore
 from django.contrib.auth.decorators import login_required # type: ignore
-from django.http import HttpResponse, JsonResponse # type: ignore
+from django.http import JsonResponse # type: ignore
 from django.utils import timezone # type: ignore
 from .models import (
     FamiliaDenuncia, GrupoDenuncia, Requerimiento, SubgrupoDenuncia, 
@@ -136,113 +136,24 @@ def admin_dashboard(request):
     }
     return render(request, 'Usuario/Admin.html', context)
 
-@login_required
 def admin_requerimientos(request):
-    """Página principal de gestión de requerimientos - VERSIÓN DEBUG"""
-    try:
-        print("🔄 INICIANDO admin_requerimientos...")
-        
-        # Verificar autenticación
-        if not request.user.is_authenticated:
-            print("❌ Usuario no autenticado")
-            return redirect('login')
-        
-        print(f"✅ Usuario autenticado: {request.user}")
-        
-        # Verificar rol
-        user_rol = request.user.id_rol.nombre_rol.lower()
-        print(f"🔑 Rol del usuario: {user_rol}")
-        
-        if user_rol != 'administrador':
-            print(f"❌ Rol no permitido: {user_rol}")
-            return redirect('index')
-        
-        print("✅ Rol de administrador confirmado")
-        
-        # Probar consultas a la base de datos
-        try:
-            familias = FamiliaDenuncia.objects.all()
-            grupos = GrupoDenuncia.objects.all()
-            subgrupos = SubgrupoDenuncia.objects.all()
-            requerimientos = Requerimiento.objects.all()
-            
-            print(f"✅ Consultas BD exitosas: {familias.count()} familias, {grupos.count()} grupos, {subgrupos.count()} subgrupos, {requerimientos.count()} requerimientos")
-            
-            context = {
-                'familias': familias,
-                'grupos': grupos,
-                'subgrupos': subgrupos,
-                'requerimientos': requerimientos,
-            }
-        except Exception as db_error:
-            print(f"❌ Error en consultas BD: {str(db_error)}")
-            context = {
-                'familias': [],
-                'grupos': [], 
-                'subgrupos': [],
-                'requerimientos': [],
-                'error_bd': str(db_error)
-            }
-        
-        # Probar diferentes rutas de templates
-        template_paths = [
-            'Usuario/requerimientos.html',
-            'requerimientos.html', 
-            'CRUD/Admin/requerimientos.html'
-        ]
-        
-        for template_path in template_paths:
-            try:
-                print(f"🔍 Intentando cargar template: {template_path}")
-                # Verificar si el template existe
-                from django.template.loader import get_template
-                template = get_template(template_path)
-                print(f"✅ Template encontrado: {template_path}")
-                
-                # Intentar renderizar
-                return render(request, template_path, context)
-                
-            except Exception as template_error:
-                print(f"❌ Error con template {template_path}: {str(template_error)}")
-                continue
-        
-        # Si llegamos aquí, todos los templates fallaron
-        error_html = f"""
-        <h1>🔧 DEBUG - Todos los templates fallaron</h1>
-        <h2>Usuario: {request.user}</h2>
-        <h2>Rol: {user_rol}</h2>
-        <h3>Templates probados:</h3>
-        <ul>
-            <li>Usuario/requerimientos.html</li>
-            <li>requerimientos.html</li>
-            <li>CRUD/Admin/requerimientos.html</li>
-        </ul>
-        <h3>Contexto:</h3>
-        <pre>{context}</pre>
-        """
-        return HttpResponse(error_html)
-        
-    except Exception as e:
-        print(f"💥 ERROR CRÍTICO en admin_requerimientos: {str(e)}")
-        import traceback
-        error_traceback = traceback.format_exc()
-        print(f"📋 Traceback completo:\n{error_traceback}")
-        
-        error_html = f"""
-        <h1>💥 ERROR 500 - Detalles completos</h1>
-        <h2>Error:</h2>
-        <pre>{str(e)}</pre>
-        <h2>Traceback:</h2>
-        <pre>{error_traceback}</pre>
-        <h2>Información del request:</h2>
-        <ul>
-            <li>Usuario: {request.user if hasattr(request, 'user') else 'N/A'}</li>
-            <li>Autenticado: {request.user.is_authenticated if hasattr(request, 'user') else 'N/A'}</li>
-            <li>Método: {request.method}</li>
-            <li>Ruta: {request.path}</li>
-        </ul>
-        """
-        return HttpResponse(error_html)
+    """Página principal de gestión de requerimientos"""
+    if not request.user.is_authenticated or request.user.id_rol.nombre_rol.lower() != 'administrador':
+        return redirect('login')
+    
+    # Obtener todos los datos para mostrar
+    familias = FamiliaDenuncia.objects.all()
+    grupos = GrupoDenuncia.objects.all()
+    subgrupos = SubgrupoDenuncia.objects.all()
+    requerimientos = Requerimiento.objects.all()
+    
+    context = {
+        'familias': familias,
+        'grupos': grupos,
+        'subgrupos': subgrupos,
+        'requerimientos': requerimientos,
+    }
+    return render(request, 'Usuario/requerimientos.html', context)
 
 # ✅ API PARA FAMILIAS (CORREGIDA SEGÚN BD REAL)
 @csrf_exempt
@@ -1225,38 +1136,3 @@ def api_turnos_ionic(request):
         return JsonResponse({'success': True, 'turnos': data})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-    
-    
-@login_required
-def debug_templates(request):
-    """Debug: listar templates disponibles"""
-    import os
-    from django.conf import settings
-    
-    template_dirs = []
-    templates_found = []
-    
-    # Buscar en todos los directorios de templates
-    for template_dir in settings.TEMPLATES[0]['DIRS']:
-        template_dirs.append(str(template_dir))
-        if os.path.exists(template_dir):
-            for root, dirs, files in os.walk(template_dir):
-                for file in files:
-                    if file.endswith('.html'):
-                        rel_path = os.path.relpath(os.path.join(root, file), template_dir)
-                        templates_found.append(rel_path)
-    
-    html = f"""
-    <h1>🔍 DEBUG - Templates en Render</h1>
-    <h2>Directorios de templates configurados:</h2>
-    <ul>
-        {"".join([f"<li>{d}</li>" for d in template_dirs])}
-    </ul>
-    <h2>Templates encontrados ({len(templates_found)}):</h2>
-    <ul>
-        {"".join([f"<li>{t}</li>" for t in sorted(templates_found)])}
-    </ul>
-    <h2>BASE_DIR: {settings.BASE_DIR}</h2>
-    <h2>DEBUG: {settings.DEBUG}</h2>
-    """
-    return HttpResponse(html)
