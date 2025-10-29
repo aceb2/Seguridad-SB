@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requerimientos - San Bernardo</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        h1 { 
+            color: #2c3e50; 
+            border-bottom: 2px solid #3498db; 
+            padding-bottom: 10px; 
+        }
+        .stats { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            margin: 20px 0; 
+        }
+        .stat-card { 
+            background: #ecf0f1; 
+            padding: 15px; 
+            border-radius: 5px; 
+            text-align: center; 
+        }
+        .stat-number { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+        }
+        .section { 
+            margin: 30px 0; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 10px 0; 
+        }
+        th, td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid #ddd; 
+        }
+        th { 
+            background-color: #3498db; 
+            color: white; 
+        }
+        tr:hover { 
+            background-color: #f5f5f5; 
+        }
+        .success { 
+            color: #27ae60; 
+            font-weight: bold; 
+        }
+        .nav {
+            background: #2c3e50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            color: white;
+        }
+        .nav a {
+            color: white;
+            margin-right: 15px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="{% url 'index' %}">🏠 Inicio</a>
+        <a href="{% url 'Admin' %}">⚙️ Admin</a>
+        <a href="{% url 'logout' %}">🚪 Cerrar Sesión</a>
+    </div>
+
+    <div class="container">
+        <h1>📋 Gestión de Requerimientos - FUNCIONANDO ✅</h1>
+        <p class="success">¡El template se está cargando correctamente!</p>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ familias.count }}</div>
+                <div>Familias</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ grupos.count }}</div>
+                <div>Grupos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ subgrupos.count }}</div>
+                <div>Subgrupos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ requerimientos.count }}</div>
+                <div>Requerimientos</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🏠 Familias de Denuncia</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for familia in familias %}
+                    <tr>
+                        <td>{{ familia.id_familia_denuncia }}</td>
+                        <td>{{ familia.nombre_familia_denuncia }}</td>
+                        <td>{{ familia.codigo_familia }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>📊 Grupos de Denuncia</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Familia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for grupo in grupos %}
+                    <tr>
+                        <td>{{ grupo.id_grupo_denuncia }}</td>
+                        <td>{{ grupo.nombre_grupo_denuncia }}</td>
+                        <td>{{ grupo.codigo_grupo }}</td>
+                        <td>{{ grupo.id_familia_denuncia.nombre_familia_denuncia }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>📋 Requerimientos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Código</th>
+                        <th>Clasificación</th>
+                        <th>Subgrupo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requerimientos %}
+                    <tr>
+                        <td>{{ req.id_requerimiento }}</td>
+                        <td>{{ req.nombre_requerimiento }}</td>
+                        <td>{{ req.codigo_requerimiento }}</td>
+                        <td>{{ req.clasificacion_requerimiento }}</td>
+                        <td>{{ req.id_subgrupo_denuncia.nombre_subgrupo_denuncia }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 30px; padding: 15px; background: #d4edda; border-radius: 5px;">
+            <p class="success">✅ Sistema funcionando correctamente</p>
+            <p><strong>Usuario:</strong> {{ user.nombre_usuario }} {{ user.apellido_pat_usuario }}</p>
+            <p><strong>Rol:</strong> {{ user.id_rol.nombre_rol }}</p>
+            <p><strong>Template:</strong> Cargado desde templates/Usuario/requerimientos.html</p>
+        </div>
+    </div>
+    ola
+</body>
+</html>
