@@ -12,20 +12,22 @@ GITHUB
 # Resumen de Evidencias Individual:
 
 ## Fase 1:
-- Acevedo_Jose_1.1_APT122_AutoevaluacionCompetenciasFase1
-- Acevedo_Jose_1.2_APT122_DiarioReflexionFase1
-- Acevedo_Jose_1.3_APT122_AutoevaluaciónFase1
-- Ceron_Benjamin_1.1_APT122_AutoevaluacionCompetenciasFase1
-- Ceron_Benjamin_1.2_APT122_DiarioReflexionFase1
-- Ceron_Benjamin_1.3_APT122_AutoevaluaciónFase1
-- Reveco_Sebastian_1.1_APT122_AutoevaluacionCompetenciasFase1
-- Reveco_Sebastian_1.2_APT122_DiarioReflexionFase1
-- Reveco_Sebastian_1.3_APT122_AutoevaluaciónFase1
+- ACEVEDO_JOSE_1.1_APT122_AutoevaluacionCompetenciasFase1
+- ACEVEDO_JOSE_1.2_APT122_DiarioReflexionFase1
+- ACEVEDO_JOSE_1.3_APT122_AutoevaluaciónFase1
+- CERON_BENJAMIN_1.1_APT122_AutoevaluacionCompetenciasFase1
+- CERON_BENJAMIN_1.2_APT122_DiarioReflexionFase1
+- CERON_BENJAMIN_1.3_APT122_AutoevaluaciónFase1
+- REVECO_SEBASTIAN_1.1_APT122_AutoevaluacionCompetenciasFase1
+- REVECO_SEBASTIAN_1.2_APT122_DiarioReflexionFase1
+- REVECO_SEBASTIAN_1.3_APT122_AutoevaluaciónFase1
 
 ## Fase 2:
-- Acevedo_Jose_2.1_APT122_DiarioReflexionFase2
-- Ceron_Benjamin_2.1_APT122_DiarioReflexionFase2
-- Reveco_Sebastian_2.1_APT122_DiarioReflexionFase2
+- ACEVEDO_JOSE_2.1_APT122_DiarioReflexionFase2
+- CERON_BENJAMIN_2.1_APT122_DiarioReflexionFase2
+- REVECO_SEBASTIAN_2.1_APT122_DiarioReflexionFase2
+
+## Fase 3:
 
 # Resumen de Evidencias Grupa:
 
@@ -35,4 +37,19 @@ GITHUB
 - 1.5_GuiaEstudiante_Fase 1_Definicion Proyecto APT (Español)
 - PLANILLA DE EVALUACIÓN FASE 1.xlsx
 
-## Fase2:
+## Fase 2:
+- 2.4_GuiaEstudiante_Fase 2_DesarrolloProyecto APT (Español).docx
+- PLANILLA DE EVALUACION AVANCE FASE 2.xlsx (FALTANTE)
+- 2.6_GuiaEstudiante_Fase 2_Informe Final Proyecto APT (Español).docx (FALTANTE)
+- PLANILLA DE EVALUACION FINAL FASE 2.xlsx (FALTANTE
+
+## Fase 3:
+
+# Resumen de Evidencias Proyecto:
+
+## Fase 2:
+- Presentación Proyecto.pptx
+- Evidencias de documentación (FALTANTE)
+- Evidencias de sistema  Aplicación, Base de datos (FALTANTE)
+
+## Fase 3:
