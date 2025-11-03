@@ -28,12 +28,12 @@ urlpatterns = [
     path('api/usuarios/<int:usuario_id>/', views.api_usuario_detalle, name='api_usuario_detalle'),
     
         # ========== NUEVAS APIs PARA IONIC ==========
-    path('api/ionic/login/', views.api_login_ionic, name='api_login_ionic'),
-    path('api/ionic/register/', views.api_register_ciudadano, name='api_register_ciudadano'),
-    path('api/ionic/dashboard/stats/', views.api_dashboard_stats, name='api_dashboard_stats'),
-    path('api/ionic/vehiculos/', views.api_vehiculos, name='api_vehiculos'),
-    path('api/ionic/tipos-vehiculos/', views.api_tipos_vehiculos, name='api_tipos_vehiculos'),
-    path('api/ionic/denuncias/', views.api_denuncias_ionic, name='api_denuncias_ionic'),
-    path('api/ionic/roles/', views.api_roles_ionic, name='api_roles_ionic'),
-    path('api/ionic/turnos/', views.api_turnos_ionic, name='api_turnos_ionic'),
+    path('ionic/login/', views.api_login_ionic, name='api_login_ionic'),
+    path('ionic/register/', views.api_register_ciudadano, name='api_register_ciudadano'),
+    path('ionic/dashboard/stats/', views.api_dashboard_stats, name='api_dashboard_stats'),
+    path('ionic/vehiculos/', views.api_vehiculos, name='api_vehiculos'),
+    path('ionic/tipos-vehiculos/', views.api_tipos_vehiculos, name='api_tipos_vehiculos'),
+    path('ionic/denuncias/', views.api_denuncias_ionic, name='api_denuncias_ionic'),
+    path('ionic/roles/', views.api_roles_ionic, name='api_roles_ionic'),
+    path('ionic/turnos/', views.api_turnos_ionic, name='api_turnos_ionic'),
 ]

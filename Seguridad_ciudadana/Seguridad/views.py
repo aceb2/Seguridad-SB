@@ -1017,7 +1017,7 @@ def api_usuarios_buscar(request):
 
 @csrf_exempt
 def api_login_ionic(request):
-    """API de login específica para Ionic (sin sesiones)"""
+    """API de login específica para Ionic - Adaptada para Supabase"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -1027,11 +1027,15 @@ def api_login_ionic(request):
             if not email or not password:
                 return JsonResponse({'success': False, 'error': 'Email y contraseña requeridos'}, status=400)
             
-            # Autenticar usuario
+            print(f"🔐 Intentando login para: {email}")
+            
+            # PRIMERO: Intentar autenticar como Usuario (trabajador)
             user = authenticate(request, username=email, password=password)
             
             if user is not None and user.is_active:
-                # ✅ CORREGIDO: Usar nombre de rol en lugar de propiedades que no existen
+                # ✅ Es un trabajador (Usuario)
+                print(f"✅ Login exitoso como trabajador: {user.nombre_usuario}")
+                
                 user_data = {
                     'id_usuario': user.id_usuario,
                     'nombre_usuario': user.nombre_usuario,
@@ -1041,34 +1045,89 @@ def api_login_ionic(request):
                     'telefono_movil_usuario': user.telefono_movil_usuario,
                     'id_rol': user.id_rol.id_rol,
                     'nombre_rol': user.id_rol.nombre_rol,
-                    'is_active': user.is_active
+                    'is_active': user.is_active,
+                    'tipo_usuario': 'trabajador'
                 }
                 
                 return JsonResponse({
                     'success': True, 
                     'user': user_data,
-                    'message': 'Login exitoso'
+                    'message': 'Login exitoso como trabajador'
                 })
-            else:
+            
+            # SEGUNDO: Intentar autenticar como Ciudadano desde Supabase
+            try:
+                ciudadano = Ciudadano.objects.get(
+                    correo_electronico_ciudadano=email,
+                    is_active_ciudadano=True
+                )
+                
+                # Como Supabase maneja autenticación, podrías necesitar:
+                # 1. Llamar a la API de Supabase Auth, O
+                # 2. Usar una contraseña hasheada consistente
+                
+                # Opción temporal: verificar contraseña directamente
+                # EN PRODUCCIÓN: Implementar autenticación con Supabase Auth
+                if ciudadano.contraseña_ciudadano == password:
+                    print(f"✅ Login exitoso como ciudadano: {ciudadano.nombre_ciudadano}")
+                    
+                    ciudadano_data = {
+                        'id_ciudadano': ciudadano.id_ciudadano,
+                        'nombre_ciudadano': ciudadano.nombre_ciudadano,
+                        'apellido_pat_ciudadano': ciudadano.apellido_pat_ciudadano,
+                        'apellido_mat_ciudadano': ciudadano.apellido_mat_ciudadano,
+                        'correo_electronico_ciudadano': ciudadano.correo_electronico_ciudadano,
+                        'telefono_movil_ciudadano': ciudadano.telefono_movil_ciudadano,
+                        'id_rol': 3,
+                        'nombre_rol': 'ciudadano',
+                        'is_active': ciudadano.is_active_ciudadano,
+                        'tipo_usuario': 'ciudadano'
+                    }
+                    
+                    # Actualizar último inicio de sesión
+                    ciudadano.ultimo_inicio_ciudadano = timezone.now()
+                    ciudadano.save()
+                    
+                    return JsonResponse({
+                        'success': True, 
+                        'user': ciudadano_data,
+                        'message': 'Login exitoso como ciudadano'
+                    })
+                else:
+                    print("❌ Contraseña incorrecta para ciudadano")
+                    return JsonResponse({
+                        'success': False, 
+                        'error': 'Credenciales inválidas'
+                    }, status=401)
+                    
+            except Ciudadano.DoesNotExist:
+                print("❌ Ciudadano no encontrado o inactivo")
                 return JsonResponse({
                     'success': False, 
-                    'error': 'Credenciales inválidas o usuario inactivo'
+                    'error': 'Credenciales inválidas'
                 }, status=401)
                 
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+            print(f"❌ Error en login: {str(e)}")
+            return JsonResponse({
+                'success': False, 
+                'error': f'Error interno del servidor: {str(e)}'
+            }, status=500)
     
-    return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+    return JsonResponse({
+        'success': False, 
+        'error': 'Método no permitido'
+    }, status=405)
 
-# En api_register_ciudadano, cambia los nombres de campos:
 @csrf_exempt
 def api_register_ciudadano(request):
-    """API para registro de ciudadanos desde Ionic"""
+    """API para registro de ciudadanos - Adaptada para Supabase"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(f"📥 Datos recibidos para registro: {data}")
             
-            # Validar campos requeridos (usando nombres de modelo Ciudadano)
+            # Validar campos requeridos
             required_fields = [
                 'rut_ciudadano', 'nombre_ciudadano', 'apellido_pat_ciudadano',
                 'apellido_mat_ciudadano', 'correo_electronico_ciudadano',
@@ -1082,21 +1141,39 @@ def api_register_ciudadano(request):
                         'error': f'El campo {field} es requerido'
                     }, status=400)
             
-            # Verificar si el correo ya existe
+            # Validaciones de formato
+            rut_valido = re.match(r'^\d{7,8}-[\dkK]$', data['rut_ciudadano'])
+            if not rut_valido:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'El RUT debe tener formato: 12345678-9'
+                }, status=400)
+            
+            email_valido = re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['correo_electronico_ciudadano'])
+            if not email_valido:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'El correo electrónico no tiene un formato válido'
+                }, status=400)
+            
+            # Verificar duplicados en Supabase
             if Ciudadano.objects.filter(correo_electronico_ciudadano=data['correo_electronico_ciudadano']).exists():
                 return JsonResponse({
                     'success': False,
                     'error': 'El correo electrónico ya está registrado'
                 }, status=400)
             
-            # Verificar si el RUT ya existe
             if Ciudadano.objects.filter(rut_ciudadano=data['rut_ciudadano']).exists():
                 return JsonResponse({
                     'success': False,
                     'error': 'El RUT ya está registrado'
                 }, status=400)
             
-            # Crear el ciudadano
+            # EN PRODUCCIÓN: Hashear contraseña antes de guardar
+            # from django.contrib.auth.hashers import make_password
+            # contraseña_hasheada = make_password(data['contraseña_ciudadano'])
+            
+            # Crear ciudadano en Supabase
             ciudadano = Ciudadano.objects.create(
                 rut_ciudadano=data['rut_ciudadano'],
                 nombre_ciudadano=data['nombre_ciudadano'],
@@ -1104,9 +1181,11 @@ def api_register_ciudadano(request):
                 apellido_mat_ciudadano=data['apellido_mat_ciudadano'],
                 correo_electronico_ciudadano=data['correo_electronico_ciudadano'],
                 telefono_movil_ciudadano=data['telefono_movil_ciudadano'],
-                contraseña_ciudadano=data['contraseña_ciudadano'],
+                contraseña_ciudadano=data['contraseña_ciudadano'],  # Hashear en producción
                 is_active_ciudadano=True
             )
+            
+            print(f"✅ Ciudadano registrado exitosamente en Supabase: {ciudadano.nombre_ciudadano}")
             
             return JsonResponse({
                 'success': True,
@@ -1120,9 +1199,10 @@ def api_register_ciudadano(request):
             }, status=201)
             
         except Exception as e:
+            print(f"❌ Error en registro de ciudadano: {str(e)}")
             return JsonResponse({
                 'success': False,
-                'error': f'Error interno del servidor: {str(e)}'
+                'error': f'Error al registrar en la base de datos: {str(e)}'
             }, status=500)
     
     return JsonResponse({
