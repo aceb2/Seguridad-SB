@@ -1122,31 +1122,51 @@ def api_login_ionic(request):
 @csrf_exempt
 def api_register_ciudadano(request):
     """
-    API para registro de ciudadanos - USANDO TABLA USUARIO
+    API para registro - MANEJO ROBUSTO DE CODIFICACIÓN
     """
     print(f"🎯 ===== REGISTER API CALLED =====")
     
     try:
-        # Verificar método
         if request.method != 'POST':
-            print(f"❌ Método incorrecto: {request.method}")
-            return JsonResponse({
-                'success': False, 
-                'error': 'Método no permitido. Use POST.'
-            }, status=405)
+            return JsonResponse({'success': False, 'error': 'Método no permitido. Use POST.'}, status=405)
         
         print(f"✅ Método POST correcto")
         
-        # Leer y parsear JSON
+        # MANEJO ROBUSTO DE CODIFICACIÓN
+        raw_body = request.body
+        print(f"📦 Raw body length: {len(raw_body)} bytes")
+        
+        # Intentar múltiples codificaciones
+        encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+        body_str = None
+        
+        for encoding in encodings:
+            try:
+                body_str = raw_body.decode(encoding)
+                print(f"✅ Codificación exitosa: {encoding}")
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if body_str is None:
+            print(f"❌ No se pudo decodificar con ninguna codificación")
+            # Forzar decodificación reemplazando errores
+            body_str = raw_body.decode('utf-8', errors='replace')
+            print(f"🔧 Usando decode con errors='replace': {body_str[:100]}")
+        
+        print(f"📦 Body decodificado: {body_str}")
+        
+        # Parsear JSON
         try:
-            body_str = request.body.decode('utf-8')
             data = json.loads(body_str)
-            print(f"✅ JSON parseado: {list(data.keys())}")
-        except Exception as e:
-            print(f"❌ Error procesando JSON: {e}")
+            print(f"✅ JSON parseado correctamente")
+            print(f"📋 Campos recibidos: {list(data.keys())}")
+        except json.JSONDecodeError as e:
+            print(f"❌ Error JSON: {e}")
+            print(f"📦 Body que falló: {body_str}")
             return JsonResponse({
                 'success': False,
-                'error': 'Datos JSON inválidos'
+                'error': 'JSON inválido en el request'
             }, status=400)
         
         # Validar campos requeridos
@@ -1156,83 +1176,61 @@ def api_register_ciudadano(request):
             'telefono_movil_ciudadano', 'contraseña_ciudadano'
         ]
         
-        missing_fields = [field for field in required_fields if field not in data]
+        # Verificar campos case-insensitive
+        data_lower = {k.lower(): v for k, v in data.items()}
+        missing_fields = [field for field in required_fields if field.lower() not in data_lower]
+        
         if missing_fields:
             print(f"❌ Campos faltantes: {missing_fields}")
+            print(f"📋 Campos recibidos: {list(data.keys())}")
             return JsonResponse({
                 'success': False,
                 'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
             }, status=400)
         
+        # Usar datos con keys normalizados
+        normalized_data = {k.lower(): v for k, v in data.items()}
+        
         print(f"✅ Todos los campos requeridos presentes")
         
-        # Validaciones de formato
+        # Resto del código con normalized_data...
+        from .models import Usuario
         import re
-        if not re.match(r'^\d{7,8}-[\dkK]$', data['rut_ciudadano']):
+        
+        # Validaciones de formato
+        if not re.match(r'^\d{7,8}-[\dkK]$', normalized_data['rut_ciudadano']):
             return JsonResponse({
                 'success': False,
                 'error': 'El RUT debe tener formato: 12345678-9'
             }, status=400)
         
-        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['correo_electronico_ciudadano']):
-            return JsonResponse({
-                'success': False, 
-                'error': 'El correo electrónico no tiene formato válido'
-            }, status=400)
-        
-        print(f"✅ Validaciones de formato pasadas")
-        
-        # USAR TABLA USUARIO (que sabemos que funciona)
-        from .models import Usuario
-        
         # Verificar duplicados
-        if Usuario.objects.filter(correo_electronico_usuario=data['correo_electronico_ciudadano']).exists():
+        if Usuario.objects.filter(correo_electronico_usuario=normalized_data['correo_electronico_ciudadano']).exists():
             return JsonResponse({
                 'success': False,
                 'error': 'El correo electrónico ya está registrado'
             }, status=400)
         
-        if Usuario.objects.filter(rut_usuario=data['rut_ciudadano']).exists():
-            return JsonResponse({
-                'success': False,
-                'error': 'El RUT ya está registrado'
-            }, status=400)
+        # Crear usuario
+        usuario = Usuario(
+            rut_usuario=normalized_data['rut_ciudadano'],
+            nombre_usuario=normalized_data['nombre_ciudadano'],
+            apellido_pat_usuario=normalized_data['apellido_pat_ciudadano'],
+            apellido_mat_usuario=normalized_data['apellido_mat_ciudadano'],
+            correo_electronico_usuario=normalized_data['correo_electronico_ciudadano'],
+            telefono_movil_usuario=normalized_data['telefono_movil_ciudadano'],
+            id_rol_id=3,
+            is_active=True
+        )
+        usuario.set_password(normalized_data['contraseña_ciudadano'])
+        usuario.save()
         
-        print(f"✅ No hay duplicados")
+        print(f"🎉 REGISTRO EXITOSO: {usuario.id_usuario}")
         
-        # CREAR USUARIO COMO CIUDADANO (rol 3)
-        try:
-            usuario = Usuario(
-                rut_usuario=data['rut_ciudadano'],
-                nombre_usuario=data['nombre_ciudadano'],
-                apellido_pat_usuario=data['apellido_pat_ciudadano'],
-                apellido_mat_usuario=data['apellido_mat_ciudadano'],
-                correo_electronico_usuario=data['correo_electronico_ciudadano'],
-                telefono_movil_usuario=data['telefono_movil_ciudadano'],
-                id_rol_id=3,  # ROL CIUDADANO
-                is_active=True
-            )
-            usuario.set_password(data['contraseña_ciudadano'])
-            usuario.save()
-            
-            print(f"✅ Usuario-ciudadano creado: {usuario.id_usuario}")
-            
-        except Exception as e:
-            print(f"❌ Error creando usuario: {e}")
-            import traceback
-            print(f"📋 TRACEBACK: {traceback.format_exc()}")
-            return JsonResponse({
-                'success': False,
-                'error': f'Error creando usuario: {str(e)}'
-            }, status=500)
-        
-        # ÉXITO
-        print(f"🎉 REGISTRO EXITOSO: {data['nombre_ciudadano']}")
         return JsonResponse({
             'success': True,
             'message': 'Ciudadano registrado correctamente',
-            'usuario_id': usuario.id_usuario,
-            'nombre': f"{data['nombre_ciudadano']} {data['apellido_pat_ciudadano']}"
+            'usuario_id': usuario.id_usuario
         }, status=201)
         
     except Exception as e:
