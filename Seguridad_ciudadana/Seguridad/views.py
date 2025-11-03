@@ -1121,94 +1121,131 @@ def api_login_ionic(request):
 
 @csrf_exempt
 def api_register_ciudadano(request):
-    """API para registro de ciudadanos - Adaptada para Supabase"""
-    if request.method == 'POST':
+    """
+    API para registro de ciudadanos - VERSION ESTABLE
+    """
+    print(f"🎯 ===== REGISTER API CALLED =====")
+    
+    try:
+        # Verificar método
+        if request.method != 'POST':
+            print(f"❌ Método incorrecto: {request.method}")
+            return JsonResponse({
+                'success': False, 
+                'error': f'Método no permitido. Use POST.'
+            }, status=405)
+        
+        print(f"✅ Método POST correcto")
+        
+        # Leer y parsear JSON
         try:
-            data = json.loads(request.body)
-            print(f"📥 Datos recibidos para registro: {data}")
-            
-            # Validar campos requeridos
-            required_fields = [
-                'rut_ciudadano', 'nombre_ciudadano', 'apellido_pat_ciudadano',
-                'apellido_mat_ciudadano', 'correo_electronico_ciudadano',
-                'telefono_movil_ciudadano', 'contraseña_ciudadano'
-            ]
-            
-            for field in required_fields:
-                if not data.get(field):
-                    return JsonResponse({
-                        'success': False, 
-                        'error': f'El campo {field} es requerido'
-                    }, status=400)
-            
-            # Validaciones de formato
-            rut_valido = re.match(r'^\d{7,8}-[\dkK]$', data['rut_ciudadano'])
-            if not rut_valido:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'El RUT debe tener formato: 12345678-9'
-                }, status=400)
-            
-            email_valido = re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['correo_electronico_ciudadano'])
-            if not email_valido:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'El correo electrónico no tiene un formato válido'
-                }, status=400)
-            
-            # Verificar duplicados en Supabase
-            if Ciudadano.objects.filter(correo_electronico_ciudadano=data['correo_electronico_ciudadano']).exists():
-                return JsonResponse({
-                    'success': False,
-                    'error': 'El correo electrónico ya está registrado'
-                }, status=400)
-            
-            if Ciudadano.objects.filter(rut_ciudadano=data['rut_ciudadano']).exists():
-                return JsonResponse({
-                    'success': False,
-                    'error': 'El RUT ya está registrado'
-                }, status=400)
-            
-            # EN PRODUCCIÓN: Hashear contraseña antes de guardar
-            # from django.contrib.auth.hashers import make_password
-            # contraseña_hasheada = make_password(data['contraseña_ciudadano'])
-            
-            # Crear ciudadano en Supabase
-            ciudadano = Ciudadano.objects.create(
+            body_str = request.body.decode('utf-8')
+            print(f"📦 Body recibido: {body_str}")
+            data = json.loads(body_str)
+        except json.JSONDecodeError as e:
+            print(f"❌ Error JSON: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': 'JSON inválido en el request'
+            }, status=400)
+        except UnicodeDecodeError as e:
+            print(f"❌ Error decode: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Error decodificando el request'
+            }, status=400)
+        
+        print(f"✅ JSON parseado correctamente")
+        
+        # Validar campos requeridos
+        required_fields = [
+            'rut_ciudadano', 'nombre_ciudadano', 'apellido_pat_ciudadano',
+            'apellido_mat_ciudadano', 'correo_electronico_ciudadano',
+            'telefono_movil_ciudadano', 'contraseña_ciudadano'
+        ]
+        
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            print(f"❌ Campos faltantes: {missing_fields}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Campos requeridos faltantes: {", ".join(missing_fields)}'
+            }, status=400)
+        
+        print(f"✅ Todos los campos requeridos presentes")
+        
+        # Validaciones básicas
+        if not re.match(r'^\d{7,8}-[\dkK]$', data['rut_ciudadano']):
+            return JsonResponse({
+                'success': False,
+                'error': 'El RUT debe tener formato: 12345678-9'
+            }, status=400)
+        
+        if not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', data['correo_electronico_ciudadano']):
+            return JsonResponse({
+                'success': False, 
+                'error': 'El correo electrónico no tiene formato válido'
+            }, status=400)
+        
+        print(f"✅ Validaciones de formato pasadas")
+        
+        # Verificar si el ciudadano ya existe
+        from .models import Ciudadano
+        if Ciudadano.objects.filter(correo_electronico_ciudadano=data['correo_electronico_ciudadano']).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'El correo electrónico ya está registrado'
+            }, status=400)
+        
+        if Ciudadano.objects.filter(rut_ciudadano=data['rut_ciudadano']).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'El RUT ya está registrado'
+            }, status=400)
+        
+        print(f"✅ No hay duplicados")
+        
+        # CREAR CIUDADANO - versión simple primero
+        try:
+            ciudadano = Ciudadano(
                 rut_ciudadano=data['rut_ciudadano'],
                 nombre_ciudadano=data['nombre_ciudadano'],
                 apellido_pat_ciudadano=data['apellido_pat_ciudadano'],
                 apellido_mat_ciudadano=data['apellido_mat_ciudadano'],
                 correo_electronico_ciudadano=data['correo_electronico_ciudadano'],
                 telefono_movil_ciudadano=data['telefono_movil_ciudadano'],
-                contraseña_ciudadano=data['contraseña_ciudadano'],  # Hashear en producción
+                contraseña_ciudadano=data['contraseña_ciudadano'],  # En producción hashear!
                 is_active_ciudadano=True
             )
-            
-            print(f"✅ Ciudadano registrado exitosamente en Supabase: {ciudadano.nombre_ciudadano}")
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Ciudadano registrado correctamente',
-                'ciudadano': {
-                    'id_ciudadano': ciudadano.id_ciudadano,
-                    'nombre_completo': f"{ciudadano.nombre_ciudadano} {ciudadano.apellido_pat_ciudadano}",
-                    'correo_electronico_ciudadano': ciudadano.correo_electronico_ciudadano,
-                    'rut_ciudadano': ciudadano.rut_ciudadano
-                }
-            }, status=201)
+            ciudadano.save()
+            print(f"✅ Ciudadano guardado en BD: {ciudadano.id_ciudadano}")
             
         except Exception as e:
-            print(f"❌ Error en registro de ciudadano: {str(e)}")
+            print(f"❌ Error guardando en BD: {e}")
             return JsonResponse({
                 'success': False,
-                'error': f'Error al registrar en la base de datos: {str(e)}'
+                'error': f'Error guardando en base de datos: {str(e)}'
             }, status=500)
-    
-    return JsonResponse({
-        'success': False,
-        'error': 'Método no permitido'
-    }, status=405)
+        
+        # ÉXITO
+        print(f"🎉 Registro exitoso para: {data['nombre_ciudadano']}")
+        return JsonResponse({
+            'success': True,
+            'message': 'Ciudadano registrado correctamente',
+            'ciudadano_id': ciudadano.id_ciudadano
+        }, status=201)
+        
+    except Exception as e:
+        print(f"💥 ERROR NO MANEJADO EN API: {str(e)}")
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"📋 TRACEBACK COMPLETO:\n{error_traceback}")
+        
+        return JsonResponse({
+            'success': False,
+            'error': 'Error interno del servidor',
+            'debug_info': 'Revisar logs para detalles'
+        }, status=500)
 
 @csrf_exempt
 def api_vehiculos(request):

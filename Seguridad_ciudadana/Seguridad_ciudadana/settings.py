@@ -6,19 +6,17 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Ruta del archivo JSON (backup de datos)
-JSON_FILE_PATH = os.path.join(BASE_DIR, 'DB', 'data.json')
-
-# SECRET_KEY desde variables de entorno (más seguro)
+# SECRET_KEY desde variables de entorno
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-f(tp3foo&9y!)2n_a9vz+%als((omf9rulg%6j8ek1f4se@h3f')
 
 AUTH_USER_MODEL = 'Seguridad.Usuario' 
 
-# DEBUG desde variables de entorno
+# DEBUG - QUITAR EL DUPLICADO AL FINAL
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = [
     '.railway.app',
+    '.onrender.com',  # ← AGREGAR ESTO
     'localhost',
     '127.0.0.1',
     '*'
@@ -41,11 +39,11 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-# ---------------- MIDDLEWARE ----------------
+# ---------------- MIDDLEWARE CORREGIDO ----------------
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  
+    'corsheaders.middleware.CorsMiddleware',  # ← DEBE SER EL PRIMERO
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # ¡AGREGADO!
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -74,7 +72,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Seguridad_ciudadana.wsgi.application'
 
 # ---------------- DATABASE ----------------
-# Configuración para Railway (usa DATABASE_URL automática) o tu Supabase
 if config('DATABASE_URL', default=''):
     DATABASES = {
         'default': dj_database_url.config(
@@ -99,7 +96,6 @@ else:
         }
     }
 
-
 # ---------------- PASSWORDS ----------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
@@ -117,9 +113,8 @@ USE_TZ = True
 # ---------------- STATIC ----------------
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ¡AGREGADO!
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# WhiteNoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -141,18 +136,27 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-DEBUG = True
+# ---------------- CORS CONFIGURACIÓN MEJORADA ----------------
+CORS_ALLOW_ALL_ORIGINS = True  # Para desarrollo, en producción restringir
+CORS_ALLOW_CREDENTIALS = True
 
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS', 
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
-
-# ---------------- CORS ----------------
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = [
-        "https://tu-frontend.vercel.app",  # tu frontend en producción
-        "https://tu-app.railway.app",      # tu mismo dominio
-    ]
-
-# También puedes mantenerlo simple para desarrollo:
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
