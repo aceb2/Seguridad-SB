@@ -156,10 +156,3 @@ else:
 
 # También puedes mantenerlo simple para desarrollo:
 CORS_ALLOW_ALL_ORIGINS = True
-
-# AL FINAL de settings.py
-print("=== DATABASE CONFIG ===")
-print(f"DATABASE_URL: {config('DATABASE_URL', default='No configurada')}")
-print(f"DB_HOST: {config('DB_HOST', default='No configurado')}")
-print(f"Database engine: {DATABASES['default']['ENGINE']}")
-print(f"Database host: {DATABASES['default'].get('HOST', 'No host')}")

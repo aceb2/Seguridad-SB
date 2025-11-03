@@ -171,6 +171,7 @@ class Vehiculos(models.Model):
     modelo_vehiculo = models.CharField(max_length=50)
     codigo_vehiculo = models.CharField(max_length=10)
     estado_vehiculo = models.CharField(max_length=20)
+    total_kilometraje = models.IntegerField(default=0)  # NUEVO CAMPO
     fecha_creacion = models.DateTimeField(default=timezone.now)
     id_tipo_vehiculo = models.ForeignKey(TiposVehiculos, on_delete=models.PROTECT, db_column='id_tipo_vehiculo_id')
 
@@ -219,6 +220,8 @@ class AsignacionVehiculo(models.Model):
     id_vehiculo = models.ForeignKey(Vehiculos, on_delete=models.CASCADE)
     fecha_asignacion = models.DateField()
     fecha_creacion = models.DateTimeField(default=timezone.now)
+    kilometraje_inicial = models.IntegerField()  # NUEVO CAMPO
+    kilometraje_recorrido = models.IntegerField(default=0)  # NUEVO CAMPO
 
     class Meta:
         db_table = 'Seguridad_asignacion_vehiculo'

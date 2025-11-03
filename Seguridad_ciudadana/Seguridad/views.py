@@ -306,28 +306,78 @@ def api_subgrupos(request, subgrupo_id=None):
         print(f"❌ Error en api_subgrupos: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
-# ✅ API PARA REQUERIMIENTOS (CORREGIDA SEGÚN BD REAL)
+# ✅ API PARA REQUERIMIENTOS (OPTIMIZADA CON SELECT_RELATED)
 @csrf_exempt
 def api_requerimientos(request):
-    """Listar y crear requerimientos"""
+    """Listar y crear requerimientos - OPTIMIZADA PARA RENDIMIENTO"""
     try:
         if request.method == 'GET':
             subgrupo_id = request.GET.get('subgrupo_id')
+            
+            # ✅ OPTIMIZACIÓN: Cargar todas las relaciones en una sola consulta
             if subgrupo_id:
-                requerimientos = Requerimiento.objects.filter(id_subgrupo_denuncia_id=subgrupo_id)
+                requerimientos = Requerimiento.objects.filter(
+                    id_subgrupo_denuncia_id=subgrupo_id
+                ).select_related(
+                    'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
+                )
             else:
-                requerimientos = Requerimiento.objects.all()
+                requerimientos = Requerimiento.objects.all().select_related(
+                    'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
+                )
             
             data = []
             for req in requerimientos:
-                data.append({
-                    'id': req.id_requerimiento,  # CAMBIADO: id en lugar de id_requerimiento
-                    'nombre_requerimiento': req.nombre_requerimiento,  # CAMBIADO: nombre_requerimiento en lugar de nombre_requerimiento_denuncia
-                    'clasificacion_requerimiento': req.clasificacion_requerimiento,  # CAMBIADO: clasificacion_requerimiento en lugar de clasificacion_requerimiento_denuncia
-                    'descripcion_requerimiento': req.descripcion_requerimiento,  # CAMBIADO: descripcion_requerimiento en lugar de descripcion_requerimiento_denuncia
-                    'codigo_requerimiento': req.codigo_requerimiento,  # CAMBIADO: codigo_requerimiento en lugar de codigo_requerimiento_denuncia
-                    'id_subgrupo_denuncia': req.id_subgrupo_denuncia_id,
-                })
+                # ✅ ACCESO DIRECTO A LAS RELACIONES PRE-CARGADAS
+                try:
+                    # Estas relaciones ya están cargadas en memoria, no generan consultas adicionales
+                    subgrupo = req.id_subgrupo_denuncia
+                    grupo = subgrupo.id_grupo_denuncia
+                    familia = grupo.id_familia_denuncia
+                    
+                    requerimiento_data = {
+                        'id': req.id_requerimiento,
+                        'id_requerimiento': req.id_requerimiento,
+                        'nombre_requerimiento': req.nombre_requerimiento,
+                        'clasificacion_requerimiento': req.clasificacion_requerimiento,
+                        'descripcion_requerimiento': req.descripcion_requerimiento,
+                        'codigo_requerimiento': req.codigo_requerimiento,
+                        'id_subgrupo_denuncia': req.id_subgrupo_denuncia_id,
+                        
+                        # ✅ INFORMACIÓN DE JERARQUÍA (cargada eficientemente)
+                        'familia_nombre': familia.nombre_familia_denuncia,
+                        'grupo_nombre': grupo.nombre_grupo_denuncia,
+                        'subgrupo_nombre': subgrupo.nombre_subgrupo_denuncia,
+                        
+                        # ✅ IDs para referencia
+                        'id_familia_denuncia': familia.id_familia_denuncia,
+                        'id_grupo_denuncia': grupo.id_grupo_denuncia,
+                        'id_subgrupo_denuncia_completo': subgrupo.id_subgrupo_denuncia,
+                        
+                        # ✅ Códigos de jerarquía
+                        'codigo_familia': familia.codigo_familia,
+                        'codigo_grupo': grupo.codigo_grupo,
+                        'codigo_subgrupo': subgrupo.codigo_subgrupo
+                    }
+                except Exception as e:
+                    print(f"⚠️ Error obteniendo jerarquía para requerimiento {req.id_requerimiento}: {e}")
+                    # Estructura básica en caso de error
+                    requerimiento_data = {
+                        'id': req.id_requerimiento,
+                        'id_requerimiento': req.id_requerimiento,
+                        'nombre_requerimiento': req.nombre_requerimiento,
+                        'clasificacion_requerimiento': req.clasificacion_requerimiento,
+                        'descripcion_requerimiento': req.descripcion_requerimiento,
+                        'codigo_requerimiento': req.codigo_requerimiento,
+                        'id_subgrupo_denuncia': req.id_subgrupo_denuncia_id,
+                        'familia_nombre': 'No disponible',
+                        'grupo_nombre': 'No disponible',
+                        'subgrupo_nombre': 'No disponible',
+                    }
+                
+                data.append(requerimiento_data)
+            
+            print(f"✅ Requerimientos cargados: {len(data)} con información de jerarquía (OPTIMIZADO)")
             return JsonResponse(data, safe=False)
         
         elif request.method == 'POST':
@@ -348,21 +398,52 @@ def api_requerimientos(request):
             
             # Crear requerimiento
             requerimiento = Requerimiento.objects.create(
-                nombre_requerimiento=nombre,  # CAMBIADO: nombre_requerimiento en lugar de nombre_requerimiento_denuncia
-                clasificacion_requerimiento=clasificacion,  # CAMBIADO: clasificacion_requerimiento en lugar de clasificacion_requerimiento_denuncia
-                descripcion_requerimiento=descripcion,  # CAMBIADO: descripcion_requerimiento en lugar de descripcion_requerimiento_denuncia
+                nombre_requerimiento=nombre,
+                clasificacion_requerimiento=clasificacion,
+                descripcion_requerimiento=descripcion,
                 id_subgrupo_denuncia_id=subgrupo_id,
                 codigo_requerimiento=nombre[:3].upper() + str(Requerimiento.objects.count() + 1).zfill(3)
             )
             
-            return JsonResponse({
-                'id': requerimiento.id_requerimiento,  # CAMBIADO: id en lugar de id_requerimiento
-                'nombre_requerimiento': requerimiento.nombre_requerimiento,  # CAMBIADO: nombre_requerimiento en lugar de nombre_requerimiento_denuncia
-                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,  # CAMBIADO: clasificacion_requerimiento en lugar de clasificacion_requerimiento_denuncia
-                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,  # CAMBIADO: descripcion_requerimiento en lugar de descripcion_requerimiento_denuncia
-                'codigo_requerimiento': requerimiento.codigo_requerimiento,  # CAMBIADO: codigo_requerimiento en lugar de codigo_requerimiento_denuncia
-                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id
-            })
+            # ✅ OPTIMIZAR: Cargar relaciones para la respuesta
+            requerimiento_con_relaciones = Requerimiento.objects.select_related(
+                'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
+            ).get(id_requerimiento=requerimiento.id_requerimiento)
+            
+            try:
+                subgrupo = requerimiento_con_relaciones.id_subgrupo_denuncia
+                grupo = subgrupo.id_grupo_denuncia
+                familia = grupo.id_familia_denuncia
+                
+                return JsonResponse({
+                    'id': requerimiento.id_requerimiento,
+                    'id_requerimiento': requerimiento.id_requerimiento,
+                    'nombre_requerimiento': requerimiento.nombre_requerimiento,
+                    'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
+                    'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
+                    'codigo_requerimiento': requerimiento.codigo_requerimiento,
+                    'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
+                    
+                    # ✅ JERARQUÍA
+                    'familia_nombre': familia.nombre_familia_denuncia,
+                    'grupo_nombre': grupo.nombre_grupo_denuncia,
+                    'subgrupo_nombre': subgrupo.nombre_subgrupo_denuncia,
+                    'id_familia_denuncia': familia.id_familia_denuncia,
+                    'id_grupo_denuncia': grupo.id_grupo_denuncia
+                })
+            except Exception as e:
+                print(f"⚠️ Error obteniendo jerarquía para nuevo requerimiento: {e}")
+                return JsonResponse({
+                    'id': requerimiento.id_requerimiento,
+                    'nombre_requerimiento': requerimiento.nombre_requerimiento,
+                    'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
+                    'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
+                    'codigo_requerimiento': requerimiento.codigo_requerimiento,
+                    'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
+                    'familia_nombre': 'No disponible',
+                    'grupo_nombre': 'No disponible',
+                    'subgrupo_nombre': 'No disponible'
+                })
             
     except Exception as e:
         print(f"❌ Error en api_requerimientos: {str(e)}")
@@ -439,14 +520,17 @@ def api_subgrupo_detalle(request, subgrupo_id):
 
 @csrf_exempt
 def api_requerimiento_detalle(request, requerimiento_id):
-    """Manejar operaciones CRUD para un requerimiento específico"""
+    """Manejar operaciones CRUD para un requerimiento específico - COMPLETAMENTE CORREGIDO"""
     try:
-        requerimiento = Requerimiento.objects.get(id_requerimiento=requerimiento_id)
+        # ✅ OPTIMIZACIÓN: Cargar relaciones para el detalle
+        requerimiento = Requerimiento.objects.select_related(
+            'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
+        ).get(id_requerimiento=requerimiento_id)
     except Requerimiento.DoesNotExist:
         return JsonResponse({'error': 'Requerimiento no encontrado'}, status=404)
     
     if request.method == 'GET':
-        # ✅ OBTENER INFORMACIÓN DE JERARQUÍA
+        # ✅ OBTENER INFORMACIÓN DE JERARQUÍA (ya cargada eficientemente)
         try:
             subgrupo = requerimiento.id_subgrupo_denuncia
             grupo = subgrupo.id_grupo_denuncia
@@ -454,11 +538,12 @@ def api_requerimiento_detalle(request, requerimiento_id):
             
             data = {
                 'id_requerimiento': requerimiento.id_requerimiento,
-                'nombre_requerimiento': requerimiento.nombre_requerimiento,  # ✅ CAMPO CORRECTO
-                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,  # ✅ CAMPO CORRECTO
-                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,  # ✅ CAMPO CORRECTO
-                'codigo_requerimiento': requerimiento.codigo_requerimiento,  # ✅ CAMPO CORRECTO
-                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
+                'nombre_requerimiento': requerimiento.nombre_requerimiento,
+                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
+                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
+                'codigo_requerimiento': requerimiento.codigo_requerimiento,
+                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,  # ✅ CORREGIDO: usar _id
+                
                 # ✅ INFORMACIÓN DE JERARQUÍA
                 'familia_nombre': familia.nombre_familia_denuncia,
                 'grupo_nombre': grupo.nombre_grupo_denuncia,
@@ -474,7 +559,7 @@ def api_requerimiento_detalle(request, requerimiento_id):
                 'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
                 'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
                 'codigo_requerimiento': requerimiento.codigo_requerimiento,
-                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,
+                'id_subgrupo_denuncia': requerimiento.id_subgrupo_denuncia_id,  # ✅ CORREGIDO: usar _id
                 'familia_nombre': 'No disponible',
                 'grupo_nombre': 'No disponible',
                 'subgrupo_nombre': 'No disponible',
@@ -487,41 +572,151 @@ def api_requerimiento_detalle(request, requerimiento_id):
             data = json.loads(request.body)
             print(f"📥 Datos recibidos para actualizar requerimiento {requerimiento_id}: {data}")
             
+            # ✅ DEBUG: Mostrar estado actual del requerimiento
+            print(f"🔍 Estado actual:")
+            print(f"  - Subgrupo: {requerimiento.id_subgrupo_denuncia_id}")  # ✅ CORREGIDO: usar _id
+            print(f"  - Nombre: {requerimiento.nombre_requerimiento}")
+            print(f"  - Clasificación: {requerimiento.clasificacion_requerimiento}")
+            
             # ✅ ACTUALIZAR CAMPOS CON NOMBRES CORRECTOS
-            if 'nombre_requerimiento' in data:
+            campos_actualizados = []
+            
+            # ✅ ACTUALIZAR NOMBRE SI EXISTE Y ES DIFERENTE
+            if 'nombre_requerimiento' in data and data['nombre_requerimiento'] != requerimiento.nombre_requerimiento:
                 requerimiento.nombre_requerimiento = data['nombre_requerimiento']
+                campos_actualizados.append('nombre')
                 print(f"✅ Nombre actualizado a: {data['nombre_requerimiento']}")
             
-            if 'clasificacion_requerimiento' in data:
+            # ✅ ACTUALIZAR CLASIFICACIÓN SI EXISTE Y ES DIFERENTE
+            if 'clasificacion_requerimiento' in data and data['clasificacion_requerimiento'] != requerimiento.clasificacion_requerimiento:
                 requerimiento.clasificacion_requerimiento = data['clasificacion_requerimiento']
+                campos_actualizados.append('clasificación')
                 print(f"✅ Clasificación actualizada a: {data['clasificacion_requerimiento']}")
             
+            # ✅ ACTUALIZAR DESCRIPCIÓN
             if 'descripcion_requerimiento' in data:
                 requerimiento.descripcion_requerimiento = data['descripcion_requerimiento']
+                campos_actualizados.append('descripción')
                 print(f"✅ Descripción actualizada")
             
-            if 'id_subgrupo_denuncia' in data:
-                # Verificar que el subgrupo existe
+            # ✅ CORREGIDO: ACTUALIZAR SUBGRUPO SI SE ENVÍA Y ES DIFERENTE
+            subgrupo_cambiado = False
+            nuevo_subgrupo_id = None
+            
+            # ✅ VERIFICAR DIFERENTES FORMAS EN QUE PUEDE VENIR EL SUBGRUPO
+            posibles_campos_subgrupo = ['id_subgrupo_denuncia_id', 'id_subgrupo_denuncia', 'subgrupo_id']
+            
+            for campo in posibles_campos_subgrupo:
+                if campo in data and data[campo] is not None:
+                    nuevo_subgrupo_id = data[campo]
+                    print(f"🔍 Nuevo subgrupo recibido en campo '{campo}': {nuevo_subgrupo_id}")
+                    break
+            
+            if nuevo_subgrupo_id is not None:
+                # ✅ CONVERTIR A ENTERO PARA COMPARACIÓN
                 try:
-                    subgrupo = SubgrupoDenuncia.objects.get(id_subgrupo_denuncia=data['id_subgrupo_denuncia'])
-                    requerimiento.id_subgrupo_denuncia = subgrupo
-                    print(f"✅ Subgrupo actualizado a ID: {data['id_subgrupo_denuncia']}")
-                except SubgrupoDenuncia.DoesNotExist:
-                    return JsonResponse({'error': 'Subgrupo no encontrado'}, status=400)
+                    nuevo_subgrupo_id = int(nuevo_subgrupo_id)
+                    subgrupo_actual_id = int(requerimiento.id_subgrupo_denuncia_id)  # ✅ CORREGIDO: usar _id
+                    
+                    print(f"🔍 Comparando subgrupos:")
+                    print(f"  - Nuevo: {nuevo_subgrupo_id} (tipo: {type(nuevo_subgrupo_id)})")
+                    print(f"  - Actual: {subgrupo_actual_id} (tipo: {type(subgrupo_actual_id)})")
+                    print(f"  - ¿Son diferentes?: {nuevo_subgrupo_id != subgrupo_actual_id}")
+                    
+                    # ✅ VERIFICAR SI REALMENTE ESTÁ CAMBIANDO EL SUBGRUPO
+                    if nuevo_subgrupo_id != subgrupo_actual_id:
+                        print(f"🔄 Cambiando subgrupo de {subgrupo_actual_id} a {nuevo_subgrupo_id}")
+                        
+                        # ✅ VERIFICAR QUE EL SUBGRUPO EXISTE
+                        try:
+                            subgrupo = SubgrupoDenuncia.objects.get(id_subgrupo_denuncia=nuevo_subgrupo_id)
+                            requerimiento.id_subgrupo_denuncia = subgrupo
+                            campos_actualizados.append('subgrupo')
+                            subgrupo_cambiado = True
+                            print(f"✅ Subgrupo actualizado a ID: {nuevo_subgrupo_id}")
+                            
+                            # ✅ OBTENER LA NUEVA JERARQUÍA
+                            grupo = subgrupo.id_grupo_denuncia
+                            familia = grupo.id_familia_denuncia
+                            print(f"📋 Nueva jerarquía: {familia.nombre_familia_denuncia} → {grupo.nombre_grupo_denuncia} → {subgrupo.nombre_subgrupo_denuncia}")
+                            
+                        except SubgrupoDenuncia.DoesNotExist:
+                            print(f"❌ Subgrupo no encontrado: {nuevo_subgrupo_id}")
+                            return JsonResponse({'error': 'Subgrupo no encontrado'}, status=400)
+                    else:
+                        print("ℹ️  Subgrupo sin cambios (mismo ID)")
+                except (ValueError, TypeError) as e:
+                    print(f"❌ Error convirtiendo subgrupo_id: {e}")
+                    return JsonResponse({'error': 'ID de subgrupo inválido'}, status=400)
+            else:
+                print("ℹ️  No se envió id_subgrupo_denuncia_id o es None")
             
-            requerimiento.save()
-            print(f"✅ Requerimiento {requerimiento_id} actualizado correctamente")
-            
-            return JsonResponse({
-                'id_requerimiento': requerimiento.id_requerimiento,
-                'nombre_requerimiento': requerimiento.nombre_requerimiento,
-                'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
-                'descripcion_requerimiento': requerimiento.descripcion_requerimiento,
-                'mensaje': 'Requerimiento actualizado correctamente'
-            })
+            # ✅ GUARDAR SOLO SI HAY CAMBIOS
+            if campos_actualizados:
+                requerimiento.save()
+                print(f"✅ Requerimiento {requerimiento_id} actualizado correctamente. Campos: {', '.join(campos_actualizados)}")
+                
+                # ✅ CARGAR RELACIONES ACTUALIZADAS PARA LA RESPUESTA
+                requerimiento.refresh_from_db()
+                requerimiento_actualizado = Requerimiento.objects.select_related(
+                    'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
+                ).get(id_requerimiento=requerimiento_id)
+                
+                # ✅ OBTENER JERARQUÍA ACTUALIZADA
+                try:
+                    subgrupo_actual = requerimiento_actualizado.id_subgrupo_denuncia
+                    grupo_actual = subgrupo_actual.id_grupo_denuncia
+                    familia_actual = grupo_actual.id_familia_denuncia
+                    
+                    respuesta = {
+                        'id_requerimiento': requerimiento_actualizado.id_requerimiento,
+                        'nombre_requerimiento': requerimiento_actualizado.nombre_requerimiento,
+                        'clasificacion_requerimiento': requerimiento_actualizado.clasificacion_requerimiento,
+                        'descripcion_requerimiento': requerimiento_actualizado.descripcion_requerimiento,
+                        'mensaje': 'Requerimiento actualizado correctamente',
+                        # ✅ INCLUIR INFORMACIÓN DE JERARQUÍA ACTUALIZADA
+                        'jerarquia_actual': {
+                            'familia': {
+                                'id': familia_actual.id_familia_denuncia,
+                                'nombre': familia_actual.nombre_familia_denuncia
+                            },
+                            'grupo': {
+                                'id': grupo_actual.id_grupo_denuncia,
+                                'nombre': grupo_actual.nombre_grupo_denuncia
+                            },
+                            'subgrupo': {
+                                'id': subgrupo_actual.id_subgrupo_denuncia,
+                                'nombre': subgrupo_actual.nombre_subgrupo_denuncia
+                            }
+                        }
+                    }
+                    print(f"📤 Respuesta con jerarquía actualizada: {respuesta['jerarquia_actual']}")
+                    
+                except Exception as e:
+                    print(f"⚠️ Error obteniendo jerarquía actualizada: {e}")
+                    respuesta = {
+                        'id_requerimiento': requerimiento_actualizado.id_requerimiento,
+                        'nombre_requerimiento': requerimiento_actualizado.nombre_requerimiento,
+                        'clasificacion_requerimiento': requerimiento_actualizado.clasificacion_requerimiento,
+                        'descripcion_requerimiento': requerimiento_actualizado.descripcion_requerimiento,
+                        'mensaje': 'Requerimiento actualizado correctamente'
+                    }
+                
+                return JsonResponse(respuesta)
+            else:
+                print("ℹ️  No hay cambios para guardar")
+                return JsonResponse({
+                    'mensaje': 'No se realizaron cambios',
+                    'id_requerimiento': requerimiento.id_requerimiento,
+                    'nombre_requerimiento': requerimiento.nombre_requerimiento,
+                    'clasificacion_requerimiento': requerimiento.clasificacion_requerimiento,
+                    'descripcion_requerimiento': requerimiento.descripcion_requerimiento
+                })
             
         except Exception as e:
             print(f"❌ Error actualizando requerimiento {requerimiento_id}: {str(e)}")
+            import traceback
+            print(f"📋 Traceback: {traceback.format_exc()}")
             return JsonResponse({'error': f'Error al actualizar requerimiento: {str(e)}'}, status=500)
     
     elif request.method == 'DELETE':
@@ -536,9 +731,12 @@ def api_requerimiento_detalle(request, requerimiento_id):
 def api_requerimiento_ruta_completa(request, requerimiento_id):
     """Obtener la ruta completa (familia → grupo → subgrupo) de un requerimiento"""
     try:
-        requerimiento = Requerimiento.objects.get(id_requerimiento=requerimiento_id)
+        # ✅ OPTIMIZACIÓN: Cargar todas las relaciones en una consulta
+        requerimiento = Requerimiento.objects.select_related(
+            'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia'
+        ).get(id_requerimiento=requerimiento_id)
         
-        # Obtener la jerarquía completa
+        # Obtener la jerarquía completa (ya cargada)
         subgrupo = requerimiento.id_subgrupo_denuncia
         grupo = subgrupo.id_grupo_denuncia
         familia = grupo.id_familia_denuncia

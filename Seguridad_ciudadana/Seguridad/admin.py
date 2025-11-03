@@ -35,12 +35,26 @@ class UsuarioAdmin(UserAdmin):
     # ✅ CORRECCIÓN CRÍTICA: Sobrescribir filter_horizontal para evitar los campos que no existen
     filter_horizontal = ()  # ← ESTA LÍNEA ES CLAVE
 
+# Configuración para Vehiculos con el nuevo campo
+class VehiculosAdmin(admin.ModelAdmin):
+    list_display = ('patente_vehiculo', 'marca_vehiculo', 'modelo_vehiculo', 'total_kilometraje', 'estado_vehiculo', 'id_tipo_vehiculo')
+    list_filter = ('estado_vehiculo', 'id_tipo_vehiculo')
+    search_fields = ('patente_vehiculo', 'marca_vehiculo', 'modelo_vehiculo')
+    readonly_fields = ('total_kilometraje',)
+
+# Configuración para AsignacionVehiculo con los nuevos campos
+class AsignacionVehiculoAdmin(admin.ModelAdmin):
+    list_display = ('id_usuario', 'id_vehiculo', 'fecha_asignacion', 'kilometraje_inicial', 'kilometraje_recorrido', 'fecha_creacion')
+    list_filter = ('fecha_asignacion', 'id_vehiculo')
+    search_fields = ('id_usuario__nombre_usuario', 'id_vehiculo__patente_vehiculo')
+    readonly_fields = ('kilometraje_recorrido',)
+
 # Registros simples para modelos básicos
 admin.site.register(Roles)
 admin.site.register(Turnos)
 admin.site.register(TiposVehiculos)
 admin.site.register(Usuario, UsuarioAdmin)
-admin.site.register(Vehiculos)
+admin.site.register(Vehiculos, VehiculosAdmin)
 admin.site.register(Radio)
 admin.site.register(Ciudadano)
 
@@ -49,11 +63,6 @@ class AsignacionRadioAdmin(admin.ModelAdmin):
     list_display = ('id_usuario', 'id_radio', 'fecha_asignacion', 'fecha_creacion')
     list_filter = ('fecha_asignacion', 'id_radio')
     search_fields = ('id_usuario__nombre_usuario', 'id_radio__nombre_radio')
-
-class AsignacionVehiculoAdmin(admin.ModelAdmin):
-    list_display = ('id_usuario', 'id_vehiculo', 'fecha_asignacion', 'fecha_creacion')
-    list_filter = ('fecha_asignacion', 'id_vehiculo')
-    search_fields = ('id_usuario__nombre_usuario', 'id_vehiculo__patente_vehiculo')
 
 class AsignacionDerivacionEmergenciaAdmin(admin.ModelAdmin):
     list_display = ('id_servicio', 'id_derivacion', 'fecha_asignacion', 'fecha_creacion')
@@ -94,9 +103,10 @@ class SubgrupoDenunciaAdmin(admin.ModelAdmin):
     list_filter = ('id_grupo_denuncia__id_familia_denuncia', 'id_grupo_denuncia')
     search_fields = ('nombre_subgrupo_denuncia', 'codigo_subgrupo')
 
+# ✅ CORREGIDO: RequerimientoAdmin con el campo correcto
 class RequerimientoAdmin(admin.ModelAdmin):
-    list_display = ('nombre_requerimiento', 'codigo_requerimiento', 'clasificacion_requerimiento', 'id_subgrupo_denuncia')
-    list_filter = ('clasificacion_requerimiento', 'id_subgrupo_denuncia__id_grupo_denuncia__id_familia_denuncia')
+    list_display = ('nombre_requerimiento', 'codigo_requerimiento', 'clasificacion_requerimiento', 'id_subgrupo_denuncia_id')
+    list_filter = ('clasificacion_requerimiento', 'id_subgrupo_denuncia_id__id_grupo_denuncia__id_familia_denuncia')
     search_fields = ('nombre_requerimiento', 'codigo_requerimiento')
 
 # Configuración para derivaciones y móviles
@@ -112,9 +122,10 @@ class AsignacionDerivacionEmergenciaInline(admin.TabularInline):
     model = AsignacionDerivacionEmergencia
     extra = 1
 
+# ✅ CORREGIDO: DenunciaAdmin con el campo correcto
 class DenunciaAdmin(admin.ModelAdmin):
-    list_display = ('id_denuncia', 'fecha_denuncia', 'id_usuario', 'id_ciudadano', 'id_requerimiento', 'estado_denuncia')
-    list_filter = ('fecha_denuncia', 'estado_denuncia', 'id_requerimiento__clasificacion_requerimiento')
+    list_display = ('id_denuncia', 'fecha_denuncia', 'id_usuario', 'id_ciudadano', 'id_requerimiento_id', 'estado_denuncia')
+    list_filter = ('fecha_denuncia', 'estado_denuncia', 'id_requerimiento_id__clasificacion_requerimiento')
     search_fields = ('id_usuario__nombre_usuario', 'id_ciudadano__nombre_ciudadano', 'direccion_denuncia', 'detalle_denuncia')
     readonly_fields = ('fecha_creacion_denuncia', 'fecha_actualizacion_denuncia', 'tiempo_total_procedimiento_denuncia')
 

@@ -436,7 +436,95 @@ async function agregarSubgrupo() {
     }
 }
 
-// Función para guardar el requerimiento completo (CORREGIDA)
+// ✅ NUEVA FUNCIÓN: Agregar Requerimiento (botón específico)
+async function agregarRequerimiento() {
+    const nombre = document.getElementById('nuevo-requerimiento').value.trim();
+    const subgrupoId = document.getElementById('select-subgrupo').value;
+    const clasificacion = document.getElementById('clasificacion-requerimiento').value;
+    const descripcion = document.getElementById('descripcion-requerimiento').value.trim();
+    
+    console.log('🔧 Datos para nuevo requerimiento:', {
+        nombre,
+        subgrupoId,
+        clasificacion,
+        descripcion
+    });
+    
+    if (!nombre) {
+        mostrarError('Ingrese un nombre para el requerimiento');
+        return;
+    }
+    
+    if (!subgrupoId) {
+        mostrarError('Debe seleccionar un subgrupo primero');
+        return;
+    }
+    
+    try {
+        console.log(`➕ Agregando nuevo requerimiento: ${nombre} para subgrupo ${subgrupoId}`);
+        
+        // Mostrar loading
+        Swal.fire({
+            title: 'Creando requerimiento...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const response = await fetch('/api/requerimientos/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({ 
+                nombre: nombre,
+                subgrupo_id: subgrupoId,
+                clasificacion: clasificacion,
+                descripcion: descripcion
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+        }
+
+        const nuevoRequerimiento = await response.json();
+        console.log('✅ Nuevo requerimiento creado:', nuevoRequerimiento);
+
+        // Cerrar loading
+        Swal.close();
+
+        // Mostrar éxito con temporizador para recargar
+        Swal.fire({
+            icon: 'success',
+            title: '¡Éxito!',
+            text: 'Requerimiento creado correctamente. La página se recargará en 2 segundos...',
+            timer: 2000,
+            showConfirmButton: false,
+            timerProgressBar: true,
+            didClose: () => {
+                // Recargar la página para mostrar el nuevo requerimiento en la lista
+                location.reload();
+            }
+        });
+
+        // También recargar después del timer por si acaso
+        setTimeout(() => {
+            location.reload();
+        }, 2000);
+
+    } catch (error) {
+        console.error('❌ Error creando requerimiento:', error);
+        Swal.close();
+        mostrarError('Error al crear el requerimiento: ' + error.message);
+    }
+}
+
+// Función para guardar el requerimiento completo (ACTUALIZADA CON RECARGA)
 async function guardarRequerimientoCompleto(event) {
     event.preventDefault();
     
@@ -495,10 +583,21 @@ async function guardarRequerimientoCompleto(event) {
             // Cerrar loading
             Swal.close();
 
-            // Mostrar éxito y recargar
-            mostrarExito('Requerimiento creado y guardado correctamente. Recargando página...');
+            // Mostrar éxito con temporizador para recargar
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Requerimiento creado y guardado correctamente. La página se recargará en 2 segundos...',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                didClose: () => {
+                    // Recargar la página para mostrar el nuevo requerimiento en la lista
+                    location.reload();
+                }
+            });
 
-            // Recargar después de 2 segundos
+            // También recargar después del timer por si acaso
             setTimeout(() => {
                 location.reload();
             }, 2000);
@@ -533,10 +632,21 @@ async function guardarRequerimientoCompleto(event) {
             // Cerrar modal
             cerrarModalRequerimiento();
 
-            // Mostrar éxito y recargar
-            mostrarExito('Requerimiento guardado correctamente. Recargando página...');
+            // Mostrar éxito con temporizador para recargar
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Requerimiento guardado correctamente. La página se recargará en 2 segundos...',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+                didClose: () => {
+                    // Recargar la página para actualizar la lista
+                    location.reload();
+                }
+            });
 
-            // Recargar después de 2 segundos
+            // También recargar después del timer por si acaso
             setTimeout(() => {
                 location.reload();
             }, 2000);
@@ -559,10 +669,10 @@ async function guardarRequerimientoCompleto(event) {
     }
 }
 
-// Cargar todos los requerimientos para la lista
+// ✅ CARGAR TODOS LOS REQUERIMIENTOS ACTUALIZADO - NUEVO FORMATO TARJETAS
 async function cargarTodosLosRequerimientos() {
     try {
-        console.log('📥 Cargando todos los requerimientos...');
+        console.log('📥 Cargando todos los requerimientos para lista...');
         const response = await fetch('/api/requerimientos/');
         
         if (!response.ok) {
@@ -573,24 +683,36 @@ async function cargarTodosLosRequerimientos() {
         console.log('✅ Todos los requerimientos cargados:', todosRequerimientos);
         
         const lista = document.getElementById('lista-requerimientos');
-        lista.innerHTML = '';
-        
-        if (todosRequerimientos.length === 0) {
-            lista.innerHTML = '<p class="sin-datos">No hay requerimientos registrados</p>';
+        if (!lista) {
+            console.error('❌ Contenedor lista-requerimientos no encontrado');
             return;
         }
         
-        todosRequerimientos.forEach(req => {
-            const item = document.createElement('div');
-            item.className = 'requerimiento-item';
-            item.innerHTML = `
-                <strong>${req.nombre_requerimiento}</strong>
-                <span class="clasificacion ${req.clasificacion_requerimiento.toLowerCase()}">
-                    ${req.clasificacion_requerimiento}
-                </span>
+        lista.innerHTML = '';
+        
+        if (todosRequerimientos.length === 0) {
+            lista.innerHTML = `
+                <div class="sin-requerimientos">
+                    <i class="fa-solid fa-inbox"></i>
+                    <h4>No hay requerimientos registrados</h4>
+                    <p>Utilice el botón "Agregar Nuevo Requerimiento" para crear el primero.</p>
+                </div>
             `;
-            lista.appendChild(item);
+            return;
+        }
+        
+        // Crear contenedor grid para las tarjetas
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'lista-requerimientos-grid';
+        
+        todosRequerimientos.forEach((req, index) => {
+            const card = crearTarjetaRequerimiento(req, index);
+            gridContainer.appendChild(card);
         });
+        
+        lista.appendChild(gridContainer);
+        
+        console.log('✅ Lista de requerimientos renderizada en formato tarjetas');
         
     } catch (error) {
         console.error('❌ Error cargando requerimientos:', error);
@@ -714,5 +836,79 @@ function inicializarEventListeners() {
         console.log('✅ Botón guardar inicializado');
     } else {
         console.error('❌ Botón guardar no encontrado');
+    }
+}
+
+// ✅ FUNCIÓN PARA CREAR TARJETA DE REQUERIMIENTO - VERSIÓN ACTUALIZADA
+function crearTarjetaRequerimiento(requerimiento, index) {
+    const card = document.createElement('div');
+    card.className = 'requerimiento-card';
+    card.style.animationDelay = `${index * 0.1}s`;
+    
+    // ✅ USAR LOS NUEVOS CAMPOS DE JERARQUÍA
+    const familia = requerimiento.familia_nombre || 'Sin familia';
+    const grupo = requerimiento.grupo_nombre || 'Sin grupo';
+    const subgrupo = requerimiento.subgrupo_nombre || 'Sin subgrupo';
+    const codigo = requerimiento.codigo_requerimiento || 'N/A';
+    const clasificacion = requerimiento.clasificacion_requerimiento || 'Sin clasificación';
+    const descripcion = requerimiento.descripcion_requerimiento || '';
+    
+    card.innerHTML = `
+        <div class="requerimiento-header">
+            <h3 class="requerimiento-nombre">${requerimiento.nombre_requerimiento}</h3>
+            <span class="requerimiento-clasificacion clasificacion-${clasificacion.toLowerCase()}">
+                ${clasificacion}
+            </span>
+        </div>
+        <div class="requerimiento-info">
+            <div class="requerimiento-dato">
+                <strong><i class="fa-solid fa-hashtag"></i> Código:</strong>
+                <span class="codigo-requerimiento">${codigo}</span>
+            </div>
+            <div class="requerimiento-dato">
+                <strong><i class="fa-solid fa-sitemap"></i> Familia:</strong>
+                <span>${familia}</span>
+            </div>
+            <div class="requerimiento-dato">
+                <strong><i class="fa-solid fa-layer-group"></i> Grupo:</strong>
+                <span>${grupo}</span>
+            </div>
+            <div class="requerimiento-dato">
+                <strong><i class="fa-solid fa-stream"></i> Subgrupo:</strong>
+                <span>${subgrupo}</span>
+            </div>
+            ${descripcion ? `
+            <div class="requerimiento-dato descripcion">
+                <strong><i class="fa-solid fa-file-lines"></i> Descripción:</strong>
+                <span class="texto-descripcion">${descripcion}</span>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    return card;
+}
+
+// ✅ FUNCIÓN PARA EDITAR DESDE LISTA (compatibilidad)
+function editarRequerimientoDesdeLista(idRequerimiento) {
+    console.log('✏️ Editando requerimiento desde lista:', idRequerimiento);
+    
+    // Abrir el modal de actualización si existe la función
+    if (typeof abrirModalActualizarRequerimiento === 'function') {
+        abrirModalActualizarRequerimiento();
+        
+        // Buscar y seleccionar automáticamente el requerimiento
+        setTimeout(() => {
+            const requerimiento = todosRequerimientos.find(req => req.id_requerimiento === idRequerimiento);
+            if (requerimiento && typeof seleccionarRequerimientoActualizar === 'function') {
+                // Simular la selección en el modal de actualización
+                const elemento = document.querySelector(`[data-requerimiento-id="${requerimiento.id_requerimiento}"]`);
+                if (elemento) {
+                    seleccionarRequerimientoActualizar(requerimiento, elemento);
+                }
+            }
+        }, 500);
+    } else {
+        console.warn('⚠️ Función abrirModalActualizarRequerimiento no disponible');
     }
 }
