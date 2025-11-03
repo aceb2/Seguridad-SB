@@ -1122,14 +1122,13 @@ def api_login_ionic(request):
 @csrf_exempt
 def api_register_ciudadano(request):
     """
-    API para registro de ciudadanos - VERSION ESTABLE
+    API para registro de ciudadanos - CON FIX DE CODIFICACIÓN
     """
     print(f"🎯 ===== REGISTER API CALLED =====")
     
     try:
         # Verificar método
         if request.method != 'POST':
-            print(f"❌ Método incorrecto: {request.method}")
             return JsonResponse({
                 'success': False, 
                 'error': f'Método no permitido. Use POST.'
@@ -1137,22 +1136,32 @@ def api_register_ciudadano(request):
         
         print(f"✅ Método POST correcto")
         
-        # Leer y parsear JSON
+        # LEER BODY CON MANEJO DE CODIFICACIÓN
         try:
+            # Intentar UTF-8 primero
             body_str = request.body.decode('utf-8')
-            print(f"📦 Body recibido: {body_str}")
+        except UnicodeDecodeError:
+            try:
+                # Si falla, intentar Latin-1 (para caracteres como ñ, á, é, etc.)
+                body_str = request.body.decode('latin-1')
+                print("🔤 Usando codificación Latin-1")
+            except UnicodeDecodeError as e:
+                print(f"❌ Error de codificación: {e}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Error de codificación en los datos'
+                }, status=400)
+        
+        print(f"📦 Body recibido (primeros 200 chars): {body_str[:200]}")
+        
+        # Parsear JSON
+        try:
             data = json.loads(body_str)
         except json.JSONDecodeError as e:
             print(f"❌ Error JSON: {e}")
             return JsonResponse({
                 'success': False,
                 'error': 'JSON inválido en el request'
-            }, status=400)
-        except UnicodeDecodeError as e:
-            print(f"❌ Error decode: {e}")
-            return JsonResponse({
-                'success': False,
-                'error': 'Error decodificando el request'
             }, status=400)
         
         print(f"✅ JSON parseado correctamente")
@@ -1175,6 +1184,7 @@ def api_register_ciudadano(request):
         print(f"✅ Todos los campos requeridos presentes")
         
         # Validaciones básicas
+        import re
         if not re.match(r'^\d{7,8}-[\dkK]$', data['rut_ciudadano']):
             return JsonResponse({
                 'success': False,
@@ -1205,7 +1215,7 @@ def api_register_ciudadano(request):
         
         print(f"✅ No hay duplicados")
         
-        # CREAR CIUDADANO - versión simple primero
+        # CREAR CIUDADANO
         try:
             ciudadano = Ciudadano(
                 rut_ciudadano=data['rut_ciudadano'],
@@ -1214,7 +1224,7 @@ def api_register_ciudadano(request):
                 apellido_mat_ciudadano=data['apellido_mat_ciudadano'],
                 correo_electronico_ciudadano=data['correo_electronico_ciudadano'],
                 telefono_movil_ciudadano=data['telefono_movil_ciudadano'],
-                contraseña_ciudadano=data['contraseña_ciudadano'],  # En producción hashear!
+                contraseña_ciudadano=data['contraseña_ciudadano'],
                 is_active_ciudadano=True
             )
             ciudadano.save()
@@ -1222,6 +1232,8 @@ def api_register_ciudadano(request):
             
         except Exception as e:
             print(f"❌ Error guardando en BD: {e}")
+            import traceback
+            print(f"📋 TRACEBACK BD: {traceback.format_exc()}")
             return JsonResponse({
                 'success': False,
                 'error': f'Error guardando en base de datos: {str(e)}'
@@ -1243,8 +1255,7 @@ def api_register_ciudadano(request):
         
         return JsonResponse({
             'success': False,
-            'error': 'Error interno del servidor',
-            'debug_info': 'Revisar logs para detalles'
+            'error': 'Error interno del servidor'
         }, status=500)
 
 @csrf_exempt
